@@ -28,18 +28,32 @@ app.get('/', (req, res) => {
 });
 
 // Connect to MongoDB
+console.log('Attempting to connect to MongoDB Atlas...');
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/uniconnect', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
   .then(() => {
-    console.log('Connected to MongoDB');
+    console.log('✅ Successfully connected to MongoDB Atlas!');
+    console.log('Database name:', mongoose.connection.name);
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`🚀 Server is running on port ${PORT}`);
+      console.log(`📍 API Base URL: http://localhost:${PORT}`);
     });
   })
   .catch((error) => {
-    console.error('MongoDB connection error:', error);
+    console.error('❌ MongoDB connection failed:');
+    console.error('Error message:', error.message);
+
+    if (error.message.includes('IP')) {
+      console.error('\n🔒 IP Whitelist Issue:');
+      console.error('1. Go to MongoDB Atlas Dashboard');
+      console.error('2. Navigate to Network Access');
+      console.error('3. Add your current IP address');
+      console.error('4. Wait 1-2 minutes for changes to take effect');
+    }
+
+    console.error('\n⚠️  Server will exit...');
     process.exit(1);
   });
 

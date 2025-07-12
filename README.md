@@ -72,6 +72,7 @@ A modern university student networking platform built with the MERN stack (Mongo
    ```
 
    **For MongoDB Atlas (Recommended):**
+
    - Sign up at [MongoDB Atlas](https://www.mongodb.com/atlas)
    - Create a new cluster
    - Get your connection string and replace the MONGODB_URI
@@ -80,6 +81,7 @@ A modern university student networking platform built with the MERN stack (Mongo
 4. **Database Setup**
 
    **Option A: MongoDB Atlas (Cloud - Recommended)**
+
    - No local installation required
    - Already configured if you used the Atlas connection string above
 
