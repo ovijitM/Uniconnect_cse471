@@ -66,13 +66,24 @@ A modern university student networking platform built with the MERN stack (Mongo
    ```env
    NODE_ENV=development
    PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/uniconnect
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database_name?retryWrites=true&w=majority&appName=your_app_name
    JWT_SECRET=your_jwt_secret_key_here
    CLIENT_URL=http://localhost:3000
    ```
 
-4. **Start MongoDB**
+   **For MongoDB Atlas (Recommended):**
+   - Sign up at [MongoDB Atlas](https://www.mongodb.com/atlas)
+   - Create a new cluster
+   - Get your connection string and replace the MONGODB_URI
+   - Make sure to whitelist your IP address
 
+4. **Database Setup**
+
+   **Option A: MongoDB Atlas (Cloud - Recommended)**
+   - No local installation required
+   - Already configured if you used the Atlas connection string above
+
+   **Option B: Local MongoDB (Optional)**
    Make sure MongoDB is running on your system:
 
    ```bash
@@ -166,10 +177,12 @@ uniconnect_cse471/
 ```env
 NODE_ENV=development
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/uniconnect
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database_name?retryWrites=true&w=majority&appName=your_app_name
 JWT_SECRET=your_jwt_secret_key_here
 CLIENT_URL=http://localhost:3000
 ```
+
+**Important**: Replace the MongoDB URI with your actual Atlas connection string or local MongoDB URL.
 
 ## Contributing
 
