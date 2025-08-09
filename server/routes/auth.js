@@ -35,6 +35,37 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
+// Middleware to optionally verify JWT token (for public endpoints that benefit from user context)
+const optionalAuth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      // No token provided, continue without user
+      req.user = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId)
+      .select('-password')
+      .populate('university', 'name code location type');
+
+    if (!user) {
+      // Invalid token, continue without user
+      req.user = null;
+      return next();
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    // Token verification failed, continue without user
+    req.user = null;
+    next();
+  }
+};
+
 // Middleware to check roles
 const requireRole = (...roles) => {
   return (req, res, next) => {
@@ -182,4 +213,5 @@ router.get('/profile', verifyToken, async (req, res) => {
 
 module.exports = router;
 module.exports.verifyToken = verifyToken;
+module.exports.optionalAuth = optionalAuth;
 module.exports.requireRole = requireRole;

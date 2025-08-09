@@ -123,6 +123,7 @@ const sampleEvents = [
         maxAttendees: 200,
         registrationFee: 0,
         isRegistrationRequired: true,
+        isPublic: true,
         tags: ['coding', 'hackathon', 'programming', 'competition']
     },
     {
@@ -135,6 +136,7 @@ const sampleEvents = [
         maxAttendees: 150,
         registrationFee: 0,
         isRegistrationRequired: false,
+        isPublic: false,
         tags: ['photography', 'exhibition', 'art', 'campus']
     },
     {
@@ -147,6 +149,7 @@ const sampleEvents = [
         maxAttendees: 300,
         registrationFee: 5,
         isRegistrationRequired: true,
+        isPublic: true,
         tags: ['debate', 'competition', 'public speaking', 'championship']
     },
     {
@@ -159,6 +162,7 @@ const sampleEvents = [
         maxAttendees: 100,
         registrationFee: 0,
         isRegistrationRequired: true,
+        isPublic: true,
         tags: ['environment', 'trees', 'community service', 'green campus']
     },
     {
@@ -171,6 +175,7 @@ const sampleEvents = [
         maxAttendees: 500,
         registrationFee: 3,
         isRegistrationRequired: false,
+        isPublic: true,
         tags: ['basketball', 'sports', 'tournament', 'finals']
     },
     {
@@ -183,6 +188,7 @@ const sampleEvents = [
         maxAttendees: 400,
         registrationFee: 8,
         isRegistrationRequired: true,
+        isPublic: false,
         tags: ['music', 'concert', 'performance', 'spring']
     },
     {
@@ -195,6 +201,7 @@ const sampleEvents = [
         maxAttendees: 600,
         registrationFee: 0,
         isRegistrationRequired: false,
+        isPublic: true,
         tags: ['food', 'international', 'cultural', 'festival']
     },
     {
@@ -207,6 +214,7 @@ const sampleEvents = [
         maxAttendees: 80,
         registrationFee: 10,
         isRegistrationRequired: true,
+        isPublic: false,
         tags: ['entrepreneurship', 'business', 'startup', 'workshop']
     },
     {
@@ -219,6 +227,7 @@ const sampleEvents = [
         maxAttendees: 120,
         registrationFee: 0,
         isRegistrationRequired: true,
+        isPublic: true,
         tags: ['AI', 'machine learning', 'technology', 'seminar']
     },
     {
@@ -231,6 +240,7 @@ const sampleEvents = [
         maxAttendees: 1000,
         registrationFee: 0,
         isRegistrationRequired: false,
+        isPublic: true,
         tags: ['career', 'jobs', 'recruitment', 'networking']
     }
 ];

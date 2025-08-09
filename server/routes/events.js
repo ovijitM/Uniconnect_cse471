@@ -3,12 +3,12 @@ const jwt = require('jsonwebtoken');
 const Event = require('../models/Event');
 const Club = require('../models/Club');
 const User = require('../models/User');
-const { verifyToken, requireRole } = require('./auth');
+const { verifyToken, optionalAuth, requireRole } = require('./auth');
 
 const router = express.Router();// @route   GET /api/events
-// @desc    Get all events
-// @access  Public
-router.get('/', async (req, res) => {
+// @desc    Get all events (with public/private access control)
+// @access  Public (enhanced with optional authentication)
+router.get('/', optionalAuth, async (req, res) => {
     try {
         const {
             search,
@@ -22,9 +22,30 @@ router.get('/', async (req, res) => {
 
         let query = {};
 
+        // Implement public/private event access control
+        if (req.user) {
+            // For authenticated users: show public events + private events from their university
+            const userUniversityId = req.user.university?._id || req.user.university;
+            query.$or = [
+                { isPublic: true }, // All public events
+                { isPublic: false, university: userUniversityId } // Private events from user's university
+            ];
+        } else {
+            // For non-authenticated users: only show public events
+            query.isPublic = true;
+        }
+
         // Filter by university if specified
         if (university) {
-            query.university = university;
+            if (query.$or) {
+                // Modify the existing $or condition to include university filter
+                query.$or = query.$or.map(condition => ({
+                    ...condition,
+                    university: university
+                }));
+            } else {
+                query.university = university;
+            }
         }
 
         // Filter by event type
@@ -39,11 +60,18 @@ router.get('/', async (req, res) => {
 
         // Search functionality
         if (search) {
-            query.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
-            ];
-        }        // Filter upcoming events
+            const searchCondition = {
+                $or: [
+                    { title: { $regex: search, $options: 'i' } },
+                    { description: { $regex: search, $options: 'i' } }
+                ]
+            };
+
+            // Combine with existing query
+            query = { $and: [query, searchCondition] };
+        }
+
+        // Filter upcoming events
         if (upcoming === 'true') {
             query.startDate = { $gte: new Date() };
         }
@@ -112,7 +140,8 @@ router.post('/', verifyToken, async (req, res) => {
             entryFee,
             requirements,
             contactInfo,
-            tags
+            tags,
+            isPublic = true
         } = req.body;
 
         // Verify user is a member of the organizing club
@@ -152,7 +181,8 @@ router.post('/', verifyToken, async (req, res) => {
             registrationFee: entryFee || 0,
             requirements,
             contactInfo,
-            tags
+            tags,
+            isPublic: isPublic
         });
 
         await event.save();
@@ -177,10 +207,23 @@ router.post('/', verifyToken, async (req, res) => {
 // @access  Private
 router.post('/:id/register', verifyToken, async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id);
+        const event = await Event.findById(req.params.id)
+            .populate('university', 'name code');
 
         if (!event) {
             return res.status(404).json({ message: 'Event not found' });
+        }
+
+        // Check if user can access this event (public/private logic)
+        const userUniversityId = req.user.university?._id || req.user.university;
+
+        if (!event.isPublic) {
+            // For private events, user must be from the same university
+            if (!userUniversityId || event.university._id.toString() !== userUniversityId.toString()) {
+                return res.status(403).json({
+                    message: 'This is a private event. Only students from ' + event.university.name + ' can register.'
+                });
+            }
         }
 
         // Check if registration is required
