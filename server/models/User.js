@@ -30,7 +30,13 @@ const userSchema = new mongoose.Schema({
   },
   year: {
     type: String,
-    enum: ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate']
+    enum: ['Freshman', 'Sophomore', 'Junior', 'Senior']
+  },
+  studentId: {
+    type: String,
+    trim: true,
+    unique: true,
+    sparse: true
   },
   bio: {
     type: String,
@@ -43,6 +49,35 @@ const userSchema = new mongoose.Schema({
   profilePicture: {
     type: String,
     default: ''
+  },
+  clubMemberships: [{
+    club: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Club'
+    },
+    role: {
+      type: String,
+      enum: ['Member', 'Officer', 'President', 'Vice President', 'Secretary'],
+      default: 'Member'
+    },
+    joinedDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  eventsAttended: [{
+    event: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Event'
+    },
+    attendedDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  phone: {
+    type: String,
+    trim: true
   },
   isActive: {
     type: Boolean,

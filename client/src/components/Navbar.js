@@ -29,7 +29,7 @@ const Navbar = () => {
             fontWeight: 'bold'
           }}
         >
-          UniConnect
+          UniConnect - Clubs & Events
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -45,6 +45,28 @@ const Navbar = () => {
                 }}
               >
                 Dashboard
+              </Button>
+              <Button
+                color="inherit"
+                component={Link}
+                to="/clubs"
+                sx={{
+                  textDecoration: 'none',
+                  backgroundColor: location.pathname === '/clubs' ? 'rgba(255,255,255,0.1)' : 'transparent'
+                }}
+              >
+                Clubs
+              </Button>
+              <Button
+                color="inherit"
+                component={Link}
+                to="/events"
+                sx={{
+                  textDecoration: 'none',
+                  backgroundColor: location.pathname === '/events' ? 'rgba(255,255,255,0.1)' : 'transparent'
+                }}
+              >
+                Events
               </Button>
               <Button
                 color="inherit"
