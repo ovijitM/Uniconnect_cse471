@@ -68,6 +68,37 @@ const Navbar = () => {
               >
                 Events
               </Button>
+
+              {/* Club Admin Dashboard */}
+              {user.role === 'Club Admin' && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/club-admin-dashboard"
+                  sx={{
+                    textDecoration: 'none',
+                    backgroundColor: location.pathname === '/club-admin-dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent'
+                  }}
+                >
+                  Club Admin
+                </Button>
+              )}
+
+              {/* Administrator Dashboard */}
+              {user.role === 'Administrator' && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/admin-dashboard"
+                  sx={{
+                    textDecoration: 'none',
+                    backgroundColor: location.pathname === '/admin-dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent'
+                  }}
+                >
+                  Admin Panel
+                </Button>
+              )}
+
               <Button
                 color="inherit"
                 onClick={handleLogout}

@@ -144,7 +144,7 @@ router.post('/', verifyToken, async (req, res) => {
             isPublic = true
         } = req.body;
 
-        // Verify user is a member of the organizing club
+        // Check if user is authorized to create events for this club
         const club = await Club.findById(organizer).populate('university');
         if (!club) {
             return res.status(404).json({ message: 'Club not found' });
@@ -156,12 +156,30 @@ router.post('/', verifyToken, async (req, res) => {
             return res.status(403).json({ message: 'You can only create events for clubs at your university' });
         }
 
-        const isMember = club.members.some(
-            member => member.user.toString() === req.user._id.toString()
-        );
+        // Check authorization based on user role
+        let authorized = false;
 
-        if (!isMember) {
-            return res.status(403).json({ message: 'You must be a member of the club to create events' });
+        if (req.user.role === 'Administrator') {
+            // Administrators can create events for any club
+            authorized = true;
+        } else if (req.user.role === 'Club Admin') {
+            // Club admins can only create events for clubs where they are president
+            if (club.president && club.president.toString() === req.user._id.toString()) {
+                authorized = true;
+            }
+        } else {
+            // Regular students must be members of the club
+            const isMember = club.members.some(
+                member => member.user.toString() === req.user._id.toString()
+            );
+            authorized = isMember;
+        }
+
+        if (!authorized) {
+            const roleMessage = req.user.role === 'Club Admin'
+                ? 'You can only create events for clubs where you are the president'
+                : 'You must be a member of the club to create events';
+            return res.status(403).json({ message: roleMessage });
         }
 
         const event = new Event({

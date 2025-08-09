@@ -6,10 +6,7 @@ import {
     Grid,
     Card,
     CardContent,
-    CardActions,
-    Paper,
     Button,
-    Fab,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -18,404 +15,666 @@ import {
     MenuItem,
     FormControl,
     InputLabel,
-    Select
+    Select,
+    Chip,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Alert,
+    Tabs,
+    Tab,
+    IconButton,
+    Tooltip
 } from '@mui/material';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import GroupsIcon from '@mui/icons-material/Groups';
-import EventIcon from '@mui/icons-material/Event';
 import AddIcon from '@mui/icons-material/Add';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import EventIcon from '@mui/icons-material/Event';
+import GroupsIcon from '@mui/icons-material/Groups';
+import PendingIcon from '@mui/icons-material/Pending';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const ClubAdminDashboard = () => {
     const { user } = useAuth();
+    const [tabValue, setTabValue] = useState(0);
+    const [clubRequests, setClubRequests] = useState([]);
     const [myClubs, setMyClubs] = useState([]);
     const [myEvents, setMyEvents] = useState([]);
-    const [allEvents, setAllEvents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [createEventDialog, setCreateEventDialog] = useState(false);
+
+    // Club Request Dialog
+    const [clubRequestDialogOpen, setClubRequestDialogOpen] = useState(false);
+    const [newClubRequest, setNewClubRequest] = useState({
+        name: '',
+        description: '',
+        category: 'Academic',
+        contactEmail: user?.email || '',
+        membershipFee: 0
+    });
+
+    // Event Creation Dialog
+    const [eventDialogOpen, setEventDialogOpen] = useState(false);
+    const [selectedClub, setSelectedClub] = useState('');
     const [newEvent, setNewEvent] = useState({
         title: '',
         description: '',
         type: 'Workshop',
-        organizer: '',
-        startDate: '',
-        endDate: '',
-        venue: { name: '', address: '' },
+        startDate: dayjs(),
+        endDate: dayjs().add(2, 'hour'),
+        venue: '',
         capacity: '',
         registrationRequired: true,
-        entryFee: 0
+        registrationDeadline: dayjs().add(1, 'day'),
+        entryFee: 0,
+        requirements: '',
+        contactInfo: user?.email || '',
+        isPublic: true
     });
 
-    const eventTypes = ['Workshop', 'Seminar', 'Competition', 'Social Event', 'Meeting', 'Conference', 'Sports', 'Cultural', 'Academic', 'Other'];
+    const clubCategories = [
+        'Academic', 'Sports', 'Cultural', 'Technical', 'Social',
+        'Professional', 'Arts', 'Environment', 'Community Service', 'Other'
+    ];
+
+    const eventTypes = [
+        'Workshop', 'Seminar', 'Competition', 'Social Event', 'Meeting',
+        'Conference', 'Sports', 'Cultural', 'Academic', 'Other'
+    ];
 
     useEffect(() => {
-        fetchClubAdminData();
+        fetchData();
     }, []);
 
-    const fetchClubAdminData = async () => {
+    const fetchData = async () => {
         try {
-            const [clubsRes, eventsRes] = await Promise.all([
-                axios.get('/clubs'),
-                axios.get('/events')
+            setLoading(true);
+            await Promise.all([
+                fetchClubRequests(),
+                fetchMyClubs(),
+                fetchMyEvents()
             ]);
-
-            // Filter clubs where user is president or officer
-            const userClubs = clubsRes.data.clubs?.filter(club =>
-                club.members?.some(member =>
-                    member.user._id === user?._id &&
-                    ['President', 'Vice President', 'Officer', 'Secretary'].includes(member.role)
-                )
-            ) || [];
-
-            // Filter events organized by user's clubs
-            const clubIds = userClubs.map(club => club._id);
-            const userEvents = eventsRes.data.events?.filter(event =>
-                clubIds.includes(event.organizer?._id)
-            ) || [];
-
-            setMyClubs(userClubs);
-            setMyEvents(userEvents);
-            setAllEvents(eventsRes.data.events || []);
         } catch (error) {
-            console.error('Error fetching club admin data:', error);
+            console.error('Error fetching data:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCreateEvent = async () => {
+    const fetchClubRequests = async () => {
         try {
-            await axios.post('/events', newEvent);
-            setCreateEventDialog(false);
-            resetNewEvent();
-            fetchClubAdminData();
+            const response = await axios.get('/api/club-requests');
+            setClubRequests(response.data.requests || []);
         } catch (error) {
-            console.error('Error creating event:', error);
-            alert(error.response?.data?.message || 'Failed to create event');
+            console.error('Error fetching club requests:', error);
         }
     };
 
-    const resetNewEvent = () => {
-        setNewEvent({
-            title: '',
-            description: '',
-            type: 'Workshop',
-            organizer: '',
-            startDate: '',
-            endDate: '',
-            venue: { name: '', address: '' },
-            capacity: '',
-            registrationRequired: true,
-            entryFee: 0
-        });
+    const fetchMyClubs = async () => {
+        try {
+            const response = await axios.get('/api/clubs');
+            // Filter clubs where current user is president
+            const myClubsData = response.data.clubs.filter(club =>
+                club.president && club.president._id === user._id
+            );
+            setMyClubs(myClubsData);
+        } catch (error) {
+            console.error('Error fetching clubs:', error);
+        }
     };
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+    const fetchMyEvents = async () => {
+        try {
+            const response = await axios.get('/api/events');
+            // Filter events for clubs where user is president
+            const myClubIds = myClubs.map(club => club._id);
+            const myEventsData = response.data.events.filter(event =>
+                myClubIds.includes(event.club?._id)
+            );
+            setMyEvents(myEventsData);
+        } catch (error) {
+            console.error('Error fetching events:', error);
+        }
     };
+
+    const handleCreateClubRequest = async () => {
+        try {
+            await axios.post('/api/club-requests', newClubRequest);
+            setClubRequestDialogOpen(false);
+            setNewClubRequest({
+                name: '',
+                description: '',
+                category: 'Academic',
+                contactEmail: user?.email || '',
+                membershipFee: 0
+            });
+            fetchClubRequests();
+            alert('Club request submitted successfully!');
+        } catch (error) {
+            console.error('Error creating club request:', error);
+            alert(error.response?.data?.message || 'Error creating club request');
+        }
+    };
+
+    const handleDeleteClubRequest = async (requestId) => {
+        if (!window.confirm('Are you sure you want to delete this club request?')) return;
+
+        try {
+            await axios.delete(`/api/club-requests/${requestId}`);
+            fetchClubRequests();
+            alert('Club request deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting club request:', error);
+            alert(error.response?.data?.message || 'Error deleting club request');
+        }
+    };
+
+    const handleCreateEvent = async () => {
+        try {
+            const eventData = {
+                ...newEvent,
+                organizer: selectedClub,
+                startDate: newEvent.startDate.toISOString(),
+                endDate: newEvent.endDate.toISOString(),
+                registrationDeadline: newEvent.registrationDeadline.toISOString(),
+                capacity: newEvent.capacity ? parseInt(newEvent.capacity) : null
+            };
+
+            await axios.post('/api/events', eventData);
+            setEventDialogOpen(false);
+            setNewEvent({
+                title: '',
+                description: '',
+                type: 'Workshop',
+                startDate: dayjs(),
+                endDate: dayjs().add(2, 'hour'),
+                venue: '',
+                capacity: '',
+                registrationRequired: true,
+                registrationDeadline: dayjs().add(1, 'day'),
+                entryFee: 0,
+                requirements: '',
+                contactInfo: user?.email || '',
+                isPublic: true
+            });
+            setSelectedClub('');
+            fetchMyEvents();
+            alert('Event created successfully!');
+        } catch (error) {
+            console.error('Error creating event:', error);
+            alert(error.response?.data?.message || 'Error creating event');
+        }
+    };
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'pending': return 'warning';
+            case 'approved': return 'success';
+            case 'rejected': return 'error';
+            default: return 'default';
+        }
+    };
+
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'pending': return <PendingIcon />;
+            case 'approved': return <CheckCircleIcon />;
+            case 'rejected': return <CancelIcon />;
+            default: return <PendingIcon />;
+        }
+    };
+
+    if (loading) {
+        return (
+            <Container maxWidth="lg" sx={{ mt: 4 }}>
+                <Typography variant="h4" gutterBottom>
+                    Loading...
+                </Typography>
+            </Container>
+        );
+    }
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4, mt: 8 }}>
-            {/* Welcome Section */}
-            <Paper
-                sx={{
-                    p: 4,
-                    mb: 4,
-                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                    color: 'white',
-                    borderRadius: 2
-                }}
-            >
-                <Typography variant="h3" gutterBottom fontWeight="bold">
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                     Club Admin Dashboard
                 </Typography>
-                <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                    Welcome, {user?.name} - Manage your clubs and events
-                </Typography>
-            </Paper>
 
-            {/* Stats Section */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={4}>
-                    <Card sx={{ textAlign: 'center', p: 2 }}>
-                        <CardContent>
-                            <GroupsIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                            <Typography variant="h4" fontWeight="bold">
-                                {myClubs.length}
-                            </Typography>
-                            <Typography color="text.secondary">
-                                My Clubs
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <Card sx={{ textAlign: 'center', p: 2 }}>
-                        <CardContent>
-                            <EventIcon sx={{ fontSize: 40, color: 'secondary.main', mb: 1 }} />
-                            <Typography variant="h4" fontWeight="bold">
-                                {myEvents.length}
-                            </Typography>
-                            <Typography color="text.secondary">
-                                My Events
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <Card sx={{ textAlign: 'center', p: 2 }}>
-                        <CardContent>
-                            <Typography variant="h4" fontWeight="bold" color="success.main">
-                                {myEvents.reduce((total, event) => total + (event.attendees?.length || 0), 0)}
-                            </Typography>
-                            <Typography color="text.secondary">
-                                Total Attendees
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                    <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+                        <Tab label="Club Requests" icon={<GroupsIcon />} />
+                        <Tab label="My Clubs" icon={<GroupsIcon />} />
+                        <Tab label="My Events" icon={<EventIcon />} />
+                    </Tabs>
+                </Box>
 
-            {/* My Clubs Section */}
-            <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" gutterBottom fontWeight="bold">
-                    My Clubs
-                </Typography>
-                <Grid container spacing={3}>
-                    {myClubs.length === 0 ? (
-                        <Grid item xs={12}>
-                            <Typography variant="body1" color="text.secondary" textAlign="center">
-                                You are not managing any clubs yet.
-                            </Typography>
-                        </Grid>
-                    ) : (
-                        myClubs.map((club) => (
-                            <Grid item xs={12} sm={6} md={4} key={club._id}>
-                                <Card
-                                    sx={{
-                                        height: '100%',
-                                        transition: 'transform 0.2s ease-in-out',
-                                        '&:hover': {
-                                            transform: 'translateY(-4px)',
-                                            boxShadow: 4
-                                        }
-                                    }}
-                                >
-                                    <CardContent>
-                                        <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                            {club.name}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                            {club.description?.length > 100
-                                                ? `${club.description.substring(0, 100)}...`
-                                                : club.description}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Members: {club.members?.length || 0}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Category: {club.category}
-                                        </Typography>
-                                    </CardContent>
-                                    <CardActions>
-                                        <Button size="small" variant="outlined">
-                                            Manage
-                                        </Button>
-                                    </CardActions>
-                                </Card>
-                            </Grid>
-                        ))
-                    )}
-                </Grid>
-            </Box>
+                {/* Club Requests Tab */}
+                {tabValue === 0 && (
+                    <Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                            <Typography variant="h6">Your Club Requests</Typography>
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => setClubRequestDialogOpen(true)}
+                                disabled={clubRequests.some(req => req.status === 'pending')}
+                            >
+                                Request New Club
+                            </Button>
+                        </Box>
 
-            {/* My Events Section */}
-            <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" gutterBottom fontWeight="bold">
-                    My Events
-                </Typography>
-                <Grid container spacing={3}>
-                    {myEvents.length === 0 ? (
-                        <Grid item xs={12}>
-                            <Typography variant="body1" color="text.secondary" textAlign="center">
-                                No events created yet. Click the + button to create your first event!
-                            </Typography>
-                        </Grid>
-                    ) : (
-                        myEvents.map((event) => (
-                            <Grid item xs={12} sm={6} md={4} key={event._id}>
-                                <Card
-                                    sx={{
-                                        height: '100%',
-                                        transition: 'transform 0.2s ease-in-out',
-                                        '&:hover': {
-                                            transform: 'translateY(-4px)',
-                                            boxShadow: 4
-                                        }
-                                    }}
-                                >
-                                    <CardContent>
-                                        <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                            {event.title}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            {event.description?.length > 80
-                                                ? `${event.description.substring(0, 80)}...`
-                                                : event.description}
-                                        </Typography>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                            <CalendarTodayIcon sx={{ fontSize: 16, mr: 1 }} />
-                                            <Typography variant="body2" color="text.secondary">
-                                                {formatDate(event.startDate)}
-                                            </Typography>
-                                        </Box>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Attendees: {event.attendees?.length || 0}
-                                            {event.capacity && `/${event.capacity}`}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Organizer: {event.organizer?.name}
-                                        </Typography>
-                                    </CardContent>
-                                    <CardActions>
-                                        <Button size="small" variant="outlined">
-                                            Manage
-                                        </Button>
-                                    </CardActions>
-                                </Card>
-                            </Grid>
-                        ))
-                    )}
-                </Grid>
-            </Box>
+                        {clubRequests.some(req => req.status === 'pending') && (
+                            <Alert severity="info" sx={{ mb: 3 }}>
+                                You have a pending club request. You cannot submit a new request until it's reviewed.
+                            </Alert>
+                        )}
 
-            {/* Floating Action Button for Creating Event */}
-            {myClubs.length > 0 && (
-                <Fab
-                    color="secondary"
-                    aria-label="create event"
-                    sx={{ position: 'fixed', bottom: 16, right: 16 }}
-                    onClick={() => setCreateEventDialog(true)}
-                >
-                    <AddIcon />
-                </Fab>
-            )}
+                        <TableContainer component={Paper}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>Club Name</TableCell>
+                                        <TableCell>Category</TableCell>
+                                        <TableCell>Status</TableCell>
+                                        <TableCell>Submitted</TableCell>
+                                        <TableCell>Admin Notes</TableCell>
+                                        <TableCell>Actions</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {clubRequests.map((request) => (
+                                        <TableRow key={request._id}>
+                                            <TableCell>{request.name}</TableCell>
+                                            <TableCell>{request.category}</TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={request.status}
+                                                    color={getStatusColor(request.status)}
+                                                    icon={getStatusIcon(request.status)}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                {new Date(request.createdAt).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>{request.adminNotes || 'N/A'}</TableCell>
+                                            <TableCell>
+                                                {request.status === 'pending' && (
+                                                    <Tooltip title="Delete Request">
+                                                        <IconButton
+                                                            color="error"
+                                                            onClick={() => handleDeleteClubRequest(request._id)}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                                {request.status === 'approved' && request.clubId && (
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        onClick={() => window.location.href = `/clubs`}
+                                                    >
+                                                        View Club
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {clubRequests.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} align="center">
+                                                No club requests found. Click "Request New Club" to get started.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Box>
+                )}
 
-            {/* Create Event Dialog */}
-            <Dialog
-                open={createEventDialog}
-                onClose={() => setCreateEventDialog(false)}
-                maxWidth="md"
-                fullWidth
-            >
-                <DialogTitle>Create New Event</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Event Title"
-                                    value={newEvent.title}
-                                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Event Type</InputLabel>
-                                    <Select
-                                        value={newEvent.type}
-                                        label="Event Type"
-                                        onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value })}
-                                    >
-                                        {eventTypes.map((type) => (
-                                            <MenuItem key={type} value={type}>
-                                                {type}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Description"
-                                    multiline
-                                    rows={3}
-                                    value={newEvent.description}
-                                    onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Organizing Club</InputLabel>
-                                    <Select
-                                        value={newEvent.organizer}
-                                        label="Organizing Club"
-                                        onChange={(e) => setNewEvent({ ...newEvent, organizer: e.target.value })}
-                                    >
-                                        {myClubs.map((club) => (
-                                            <MenuItem key={club._id} value={club._id}>
+                {/* My Clubs Tab */}
+                {tabValue === 1 && (
+                    <Box>
+                        <Typography variant="h6" sx={{ mb: 3 }}>
+                            Clubs You Manage ({myClubs.length})
+                        </Typography>
+
+                        <Grid container spacing={3}>
+                            {myClubs.map((club) => (
+                                <Grid item xs={12} sm={6} md={4} key={club._id}>
+                                    <Card>
+                                        <CardContent>
+                                            <Typography variant="h6" gutterBottom>
                                                 {club.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Venue Name"
-                                    value={newEvent.venue.name}
-                                    onChange={(e) => setNewEvent({
-                                        ...newEvent,
-                                        venue: { ...newEvent.venue, name: e.target.value }
-                                    })}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Start Date & Time"
-                                    type="datetime-local"
-                                    InputLabelProps={{ shrink: true }}
-                                    value={newEvent.startDate}
-                                    onChange={(e) => setNewEvent({ ...newEvent, startDate: e.target.value })}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="End Date & Time"
-                                    type="datetime-local"
-                                    InputLabelProps={{ shrink: true }}
-                                    value={newEvent.endDate}
-                                    onChange={(e) => setNewEvent({ ...newEvent, endDate: e.target.value })}
-                                />
-                            </Grid>
+                                            </Typography>
+                                            <Chip
+                                                label={club.category}
+                                                size="small"
+                                                color="primary"
+                                                sx={{ mb: 2 }}
+                                            />
+                                            <Typography variant="body2" color="text.secondary" paragraph>
+                                                {club.description}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                <strong>Members:</strong> {club.members?.length || 0}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                <strong>Fee:</strong> ${club.membershipFee || 0}
+                                            </Typography>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                            {myClubs.length === 0 && (
+                                <Grid item xs={12}>
+                                    <Paper sx={{ p: 4, textAlign: 'center' }}>
+                                        <GroupsIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                                            No clubs found
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            You don't manage any clubs yet. Submit a club request to get started.
+                                        </Typography>
+                                    </Paper>
+                                </Grid>
+                            )}
                         </Grid>
                     </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setCreateEventDialog(false)}>Cancel</Button>
-                    <Button
-                        onClick={handleCreateEvent}
-                        variant="contained"
-                        disabled={!newEvent.title || !newEvent.description || !newEvent.organizer}
-                    >
-                        Create Event
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </Container>
+                )}
+
+                {/* My Events Tab */}
+                {tabValue === 2 && (
+                    <Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                            <Typography variant="h6">
+                                Events You've Created ({myEvents.length})
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => setEventDialogOpen(true)}
+                                disabled={myClubs.length === 0}
+                            >
+                                Create Event
+                            </Button>
+                        </Box>
+
+                        {myClubs.length === 0 && (
+                            <Alert severity="info" sx={{ mb: 3 }}>
+                                You need to have an approved club before you can create events.
+                            </Alert>
+                        )}
+
+                        <Grid container spacing={3}>
+                            {myEvents.map((event) => (
+                                <Grid item xs={12} sm={6} md={4} key={event._id}>
+                                    <Card>
+                                        <CardContent>
+                                            <Typography variant="h6" gutterBottom>
+                                                {event.title}
+                                            </Typography>
+                                            <Chip
+                                                label={event.eventType}
+                                                size="small"
+                                                color="secondary"
+                                                sx={{ mb: 2 }}
+                                            />
+                                            <Typography variant="body2" color="text.secondary" paragraph>
+                                                {event.description}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                <strong>Date:</strong> {new Date(event.startDate).toLocaleDateString()}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                <strong>Venue:</strong> {event.venue}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                <strong>Attendees:</strong> {event.attendees?.length || 0}
+                                                {event.maxAttendees && `/${event.maxAttendees}`}
+                                            </Typography>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                            {myEvents.length === 0 && myClubs.length > 0 && (
+                                <Grid item xs={12}>
+                                    <Paper sx={{ p: 4, textAlign: 'center' }}>
+                                        <EventIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                                            No events found
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            You haven't created any events yet. Click "Create Event" to get started.
+                                        </Typography>
+                                    </Paper>
+                                </Grid>
+                            )}
+                        </Grid>
+                    </Box>
+                )}
+
+                {/* Club Request Dialog */}
+                <Dialog
+                    open={clubRequestDialogOpen}
+                    onClose={() => setClubRequestDialogOpen(false)}
+                    maxWidth="md"
+                    fullWidth
+                >
+                    <DialogTitle>Request New Club</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                            <TextField
+                                label="Club Name"
+                                value={newClubRequest.name}
+                                onChange={(e) => setNewClubRequest({ ...newClubRequest, name: e.target.value })}
+                                required
+                                fullWidth
+                            />
+                            <TextField
+                                label="Description"
+                                value={newClubRequest.description}
+                                onChange={(e) => setNewClubRequest({ ...newClubRequest, description: e.target.value })}
+                                multiline
+                                rows={4}
+                                required
+                                fullWidth
+                            />
+                            <FormControl fullWidth>
+                                <InputLabel>Category</InputLabel>
+                                <Select
+                                    value={newClubRequest.category}
+                                    label="Category"
+                                    onChange={(e) => setNewClubRequest({ ...newClubRequest, category: e.target.value })}
+                                >
+                                    {clubCategories.map((category) => (
+                                        <MenuItem key={category} value={category}>
+                                            {category}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <TextField
+                                label="Contact Email"
+                                type="email"
+                                value={newClubRequest.contactEmail}
+                                onChange={(e) => setNewClubRequest({ ...newClubRequest, contactEmail: e.target.value })}
+                                required
+                                fullWidth
+                            />
+                            <TextField
+                                label="Membership Fee ($)"
+                                type="number"
+                                value={newClubRequest.membershipFee}
+                                onChange={(e) => setNewClubRequest({ ...newClubRequest, membershipFee: parseFloat(e.target.value) || 0 })}
+                                fullWidth
+                                inputProps={{ min: 0, step: 0.01 }}
+                            />
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setClubRequestDialogOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleCreateClubRequest}
+                            variant="contained"
+                            disabled={!newClubRequest.name || !newClubRequest.description || !newClubRequest.contactEmail}
+                        >
+                            Submit Request
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Event Creation Dialog */}
+                <Dialog
+                    open={eventDialogOpen}
+                    onClose={() => setEventDialogOpen(false)}
+                    maxWidth="md"
+                    fullWidth
+                >
+                    <DialogTitle>Create New Event</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                            <FormControl fullWidth required>
+                                <InputLabel>Select Club</InputLabel>
+                                <Select
+                                    value={selectedClub}
+                                    label="Select Club"
+                                    onChange={(e) => setSelectedClub(e.target.value)}
+                                >
+                                    {myClubs.map((club) => (
+                                        <MenuItem key={club._id} value={club._id}>
+                                            {club.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                            <TextField
+                                label="Event Title"
+                                value={newEvent.title}
+                                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                                required
+                                fullWidth
+                            />
+
+                            <TextField
+                                label="Description"
+                                value={newEvent.description}
+                                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                                multiline
+                                rows={3}
+                                required
+                                fullWidth
+                            />
+
+                            <FormControl fullWidth>
+                                <InputLabel>Event Type</InputLabel>
+                                <Select
+                                    value={newEvent.type}
+                                    label="Event Type"
+                                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value })}
+                                >
+                                    {eventTypes.map((type) => (
+                                        <MenuItem key={type} value={type}>
+                                            {type}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <DateTimePicker
+                                    label="Start Date & Time"
+                                    value={newEvent.startDate}
+                                    onChange={(date) => setNewEvent({ ...newEvent, startDate: date })}
+                                    sx={{ flex: 1 }}
+                                />
+                                <DateTimePicker
+                                    label="End Date & Time"
+                                    value={newEvent.endDate}
+                                    onChange={(date) => setNewEvent({ ...newEvent, endDate: date })}
+                                    sx={{ flex: 1 }}
+                                />
+                            </Box>
+
+                            <TextField
+                                label="Venue"
+                                value={newEvent.venue}
+                                onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.value })}
+                                fullWidth
+                            />
+
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <TextField
+                                    label="Max Attendees"
+                                    type="number"
+                                    value={newEvent.capacity}
+                                    onChange={(e) => setNewEvent({ ...newEvent, capacity: e.target.value })}
+                                    sx={{ flex: 1 }}
+                                    inputProps={{ min: 1 }}
+                                />
+                                <TextField
+                                    label="Entry Fee ($)"
+                                    type="number"
+                                    value={newEvent.entryFee}
+                                    onChange={(e) => setNewEvent({ ...newEvent, entryFee: parseFloat(e.target.value) || 0 })}
+                                    sx={{ flex: 1 }}
+                                    inputProps={{ min: 0, step: 0.01 }}
+                                />
+                            </Box>
+
+                            <DateTimePicker
+                                label="Registration Deadline"
+                                value={newEvent.registrationDeadline}
+                                onChange={(date) => setNewEvent({ ...newEvent, registrationDeadline: date })}
+                            />
+
+                            <TextField
+                                label="Requirements"
+                                value={newEvent.requirements}
+                                onChange={(e) => setNewEvent({ ...newEvent, requirements: e.target.value })}
+                                multiline
+                                rows={2}
+                                fullWidth
+                            />
+
+                            <FormControl fullWidth>
+                                <InputLabel>Event Visibility</InputLabel>
+                                <Select
+                                    value={newEvent.isPublic}
+                                    label="Event Visibility"
+                                    onChange={(e) => setNewEvent({ ...newEvent, isPublic: e.target.value })}
+                                >
+                                    <MenuItem value={true}>Public - Visible to all users</MenuItem>
+                                    <MenuItem value={false}>Private - Only visible to your university</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setEventDialogOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleCreateEvent}
+                            variant="contained"
+                            disabled={!selectedClub || !newEvent.title || !newEvent.description}
+                        >
+                            Create Event
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            </Container>
+        </LocalizationProvider>
     );
 };
 

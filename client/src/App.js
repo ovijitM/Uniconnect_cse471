@@ -11,6 +11,8 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Clubs from './pages/Clubs';
 import Events from './pages/Events';
+import ClubAdminDashboard from './components/ClubAdminDashboard';
+import AdminDashboard from './components/AdminDashboard';
 import './App.css';
 
 const theme = createTheme({
@@ -72,6 +74,22 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/club-admin-dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <ClubAdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin-dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
                     </ProtectedRoute>
                   }
                 />
