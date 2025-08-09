@@ -26,9 +26,9 @@ const userSchema = new mongoose.Schema({
     required: [true, 'User role is required']
   },
   university: {
-    type: String,
-    required: [true, 'University is required'],
-    trim: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'University',
+    required: [true, 'University is required']
   },
   major: {
     type: String,

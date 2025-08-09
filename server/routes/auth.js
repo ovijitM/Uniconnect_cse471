@@ -20,7 +20,9 @@ const verifyToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(decoded.userId)
+      .select('-password')
+      .populate('university', 'name code location type');
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid token' });
@@ -153,6 +155,28 @@ router.post('/login', [
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
+// @route   GET /api/auth/profile
+// @desc    Get current user profile
+// @access  Private
+router.get('/profile', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('-password')
+      .populate('university', 'name code location type');
+
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
   }
 });
 
