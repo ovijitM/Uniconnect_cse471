@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, Box, Grid, Card, CardContent } from '@mui/material';
+import { Container, Typography, Button, Box, Grid, Card, CardContent, Avatar, Chip } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -177,33 +177,80 @@ const Home = () => {
                 <Card
                   sx={{
                     height: '100%',
-                    transition: 'transform 0.3s ease-in-out',
+                    borderRadius: 3,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                     '&:hover': {
-                      transform: 'translateY(-5px)',
-                      boxShadow: 3
+                      transform: 'translateY(-8px)',
+                      boxShadow: '0 12px 24px rgba(0,0,0,0.15)'
                     }
                   }}
                 >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <GroupsIcon sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                      <Avatar
+                        sx={{
+                          width: 56,
+                          height: 56,
+                          mr: 2,
+                          bgcolor: 'primary.main',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        <GroupsIcon sx={{ fontSize: 28 }} />
+                      </Avatar>
                       <Box>
-                        <Typography variant="h6" fontWeight="bold">
+                        <Typography variant="h6" fontWeight="700" gutterBottom>
                           {club.name}
                         </Typography>
-                        <Typography variant="caption" color="primary.main">
-                          {club.category}
-                        </Typography>
+                        <Chip
+                          label={club.category}
+                          size="small"
+                          color="primary"
+                          variant="filled"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: '0.75rem'
+                          }}
+                        />
                       </Box>
                     </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        mb: 2,
+                        lineHeight: 1.6,
+                        minHeight: '44px',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
+                    >
                       {club.description?.length > 100
                         ? `${club.description.substring(0, 100)}...`
-                        : club.description}
+                        : club.description || 'Join this amazing club!'}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {club.members?.length || 0} members
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 2,
+                          bgcolor: 'rgba(76, 175, 80, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 1.5
+                        }}
+                      >
+                        <GroupsIcon sx={{ fontSize: 16, color: '#4caf50' }} />
+                      </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#4caf50' }}>
+                        {club.members?.length || 0} members
+                      </Typography>
+                    </Box>
                   </CardContent>
                 </Card>
               </Grid>
@@ -242,37 +289,81 @@ const Home = () => {
                   <Card
                     sx={{
                       height: '100%',
-                      transition: 'transform 0.3s ease-in-out',
+                      borderRadius: 3,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                       '&:hover': {
-                        transform: 'translateY(-5px)',
-                        boxShadow: 3
+                        transform: 'translateY(-8px)',
+                        boxShadow: '0 12px 24px rgba(0,0,0,0.15)'
                       }
                     }}
                   >
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <EventIcon sx={{ fontSize: 40, color: 'secondary.main', mr: 2 }} />
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                        <Avatar
+                          sx={{
+                            width: 56,
+                            height: 56,
+                            mr: 2,
+                            bgcolor: 'secondary.main',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}
+                        >
+                          <EventIcon sx={{ fontSize: 28 }} />
+                        </Avatar>
                         <Box>
-                          <Typography variant="h6" fontWeight="bold">
+                          <Typography variant="h6" fontWeight="700" gutterBottom>
                             {event.title}
                           </Typography>
-                          <Typography variant="caption" color="secondary.main">
-                            {event.eventType || event.type || 'Event'}
-                          </Typography>
+                          <Chip
+                            label={event.eventType || event.type || 'Event'}
+                            size="small"
+                            color="secondary"
+                            variant="filled"
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: '0.75rem'
+                            }}
+                          />
                         </Box>
                       </Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mb: 3,
+                          lineHeight: 1.6,
+                          minHeight: '44px',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}
+                      >
                         {event.description?.length > 100
                           ? `${event.description.substring(0, 100)}...`
-                          : event.description}
+                          : event.description || 'Join this exciting event!'}
                       </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <CalendarTodayIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                        <Typography variant="body2" color="text.secondary">
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 2,
+                            bgcolor: 'rgba(255, 152, 0, 0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 1.5
+                          }}
+                        >
+                          <CalendarTodayIcon sx={{ fontSize: 16, color: '#ff9800' }} />
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#ff9800' }}>
                           {formatDate(event.startDate)}
                         </Typography>
                       </Box>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                         by {event.organizer?.name || event.club?.name || 'Unknown'}
                       </Typography>
                     </CardContent>

@@ -196,7 +196,23 @@ router.get('/profile', verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .select('-password')
-      .populate('university', 'name code location type');
+      .populate('university', 'name code location type')
+      .populate({
+        path: 'clubMemberships.club',
+        select: 'name category description university',
+        populate: {
+          path: 'university',
+          select: 'name code'
+        }
+      })
+      .populate({
+        path: 'eventsAttended.event',
+        select: 'title description eventType startDate venue university',
+        populate: {
+          path: 'university',
+          select: 'name code'
+        }
+      });
 
     res.json({
       success: true,

@@ -70,17 +70,6 @@ const Navbar = () => {
               </Button>
               <Button
                 color="inherit"
-                component={Link}
-                to="/profile"
-                sx={{
-                  textDecoration: 'none',
-                  backgroundColor: location.pathname === '/profile' ? 'rgba(255,255,255,0.1)' : 'transparent'
-                }}
-              >
-                Profile
-              </Button>
-              <Button
-                color="inherit"
                 onClick={handleLogout}
                 sx={{ ml: 1 }}
               >

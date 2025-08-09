@@ -43,9 +43,9 @@ const AdminDashboard = () => {
     const fetchAdminData = async () => {
         try {
             const [usersRes, clubsRes, eventsRes] = await Promise.all([
-                axios.get('/api/users'),
-                axios.get('/api/clubs'),
-                axios.get('/api/events')
+                axios.get('/users'),
+                axios.get('/clubs'),
+                axios.get('/events')
             ]);
 
             setUsers(usersRes.data.users || []);
@@ -66,7 +66,7 @@ const AdminDashboard = () => {
 
     const handleDeactivateUser = async (userId) => {
         try {
-            await axios.patch(`/api/users/${userId}/deactivate`);
+            await axios.patch(`/users/${userId}/deactivate`);
             fetchAdminData();
         } catch (error) {
             console.error('Error deactivating user:', error);
@@ -77,7 +77,7 @@ const AdminDashboard = () => {
     const handleDeleteClub = async (clubId) => {
         if (window.confirm('Are you sure you want to delete this club?')) {
             try {
-                await axios.delete(`/api/clubs/${clubId}`);
+                await axios.delete(`/clubs/${clubId}`);
                 fetchAdminData();
             } catch (error) {
                 console.error('Error deleting club:', error);

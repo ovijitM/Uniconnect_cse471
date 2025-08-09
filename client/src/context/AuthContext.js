@@ -3,9 +3,6 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
-// Set up axios defaults
-axios.defaults.baseURL = 'http://localhost:5001/api';
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -32,7 +29,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await axios.get('/users/profile');
+      const response = await axios.get('/api/auth/profile');
       setUser(response.data.user);
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -44,7 +41,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/auth/login', { email, password });
+      const response = await axios.post('/api/auth/login', { email, password });
       const { token, user } = response.data;
 
       localStorage.setItem('token', token);
@@ -63,7 +60,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       console.log('Attempting registration with data:', userData);
-      const response = await axios.post('/auth/register', userData);
+      const response = await axios.post('/api/auth/register', userData);
       const { token, user } = response.data;
 
       localStorage.setItem('token', token);
@@ -99,13 +96,29 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put('/users/profile', profileData);
+      const response = await axios.put('/api/users/profile', profileData);
       setUser(response.data.user);
+
+      // Fetch fresh profile data to ensure university is properly populated
+      await fetchUserProfile();
+
       return { success: true };
     } catch (error) {
       return {
         success: false,
         error: error.response?.data?.message || 'Profile update failed'
+      };
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      await fetchUserProfile();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to refresh user data'
       };
     }
   };
@@ -116,6 +129,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    refreshUser,
     loading
   };
 

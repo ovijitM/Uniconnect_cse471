@@ -12,12 +12,21 @@ import {
   Button,
   Paper,
   Tab,
-  Tabs
+  Tabs,
+  TextField,
+  Alert,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import GroupsIcon from '@mui/icons-material/Groups';
 import EventIcon from '@mui/icons-material/Event';
+import PersonIcon from '@mui/icons-material/Person';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -43,15 +52,43 @@ const Dashboard = () => {
 };
 
 const StudentDashboard = () => {
-  const { user } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const [clubs, setClubs] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
 
+  // Profile-related state
+  const [universities, setUniversities] = useState([]);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileFormData, setProfileFormData] = useState({
+    name: user?.name || '',
+    university: user?.university?._id || user?.university || '',
+    major: user?.major || '',
+    year: user?.year || '',
+    bio: user?.bio || '',
+    interests: user?.interests || []
+  });
+  const [newInterest, setNewInterest] = useState('');
+  const [profileMessage, setProfileMessage] = useState('');
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const yearOptions = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
+
   useEffect(() => {
     fetchClubsAndEvents();
+    fetchUniversities();
   }, []);
+
+  const fetchUniversities = async () => {
+    try {
+      const response = await axios.get('/api/universities');
+      setUniversities(response.data.universities || []);
+    } catch (error) {
+      console.error('Error fetching universities:', error);
+      setUniversities([]);
+    }
+  };
 
   const fetchClubsAndEvents = async () => {
     try {
@@ -76,6 +113,7 @@ const StudentDashboard = () => {
     try {
       await axios.post(`/api/clubs/${clubId}/join`);
       fetchClubsAndEvents(); // Refresh data
+      await refreshUser(); // Refresh user data to get updated memberships
     } catch (error) {
       console.error('Error joining club:', error);
       alert(error.response?.data?.message || 'Failed to join club');
@@ -86,10 +124,69 @@ const StudentDashboard = () => {
     try {
       await axios.post(`/api/events/${eventId}/register`);
       fetchClubsAndEvents(); // Refresh data
+      await refreshUser(); // Refresh user data to get updated event registrations
     } catch (error) {
       console.error('Error registering for event:', error);
       alert(error.response?.data?.message || 'Failed to register for event');
     }
+  };
+
+  // Profile-related handlers
+  const handleProfileChange = (e) => {
+    setProfileFormData({
+      ...profileFormData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleAddInterest = () => {
+    if (newInterest.trim() && !profileFormData.interests.includes(newInterest.trim())) {
+      setProfileFormData({
+        ...profileFormData,
+        interests: [...profileFormData.interests, newInterest.trim()]
+      });
+      setNewInterest('');
+    }
+  };
+
+  const handleRemoveInterest = (interestToRemove) => {
+    setProfileFormData({
+      ...profileFormData,
+      interests: profileFormData.interests.filter(interest => interest !== interestToRemove)
+    });
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    setProfileMessage('');
+
+    const result = await updateProfile(profileFormData);
+
+    if (result.success) {
+      setProfileMessage('Profile updated successfully!');
+      setIsEditingProfile(false);
+    } else {
+      setProfileMessage(result.error);
+    }
+
+    setProfileLoading(false);
+  };
+
+  const handleEditToggle = () => {
+    setIsEditingProfile(!isEditingProfile);
+    if (!isEditingProfile) {
+      // Reset form data when starting to edit
+      setProfileFormData({
+        name: user?.name || '',
+        university: user?.university?._id || user?.university || '',
+        major: user?.major || '',
+        year: user?.year || '',
+        bio: user?.bio || '',
+        interests: user?.interests || []
+      });
+    }
+    setProfileMessage('');
   };
 
   const formatDate = (dateString) => {
@@ -103,13 +200,26 @@ const StudentDashboard = () => {
     });
   };
 
+  // Get user's joined clubs based on clubMemberships in user object
   const userClubs = clubs.filter(club =>
-    club.members?.some(member => member.user._id === user?._id)
+    user?.clubMemberships?.some(membership => membership.club?._id === club._id)
   );
 
+  // Get user's registered events based on eventsAttended in user object
   const userEvents = events.filter(event =>
-    event.attendees?.some(attendee => attendee._id === user?._id)
+    user?.eventsAttended?.some(attendance => attendance.event?._id === event._id)
   );
+
+  // Debug: Check if user has club memberships and event attendance data
+  React.useEffect(() => {
+    console.log('User object:', user);
+    console.log('User clubMemberships:', user?.clubMemberships);
+    console.log('User eventsAttended:', user?.eventsAttended);
+    console.log('Available clubs:', clubs.length);
+    console.log('Available events:', events.length);
+    console.log('Filtered userClubs:', userClubs.length);
+    console.log('Filtered userEvents:', userEvents.length);
+  }, [user, clubs, events, userClubs, userEvents]);
 
   const renderClubs = (clubList) => (
     <Grid container spacing={3}>
@@ -363,6 +473,7 @@ const StudentDashboard = () => {
           <Tab label="Upcoming Events" />
           <Tab label="My Clubs" />
           <Tab label="My Events" />
+          <Tab label="My Profile" icon={<PersonIcon />} />
         </Tabs>
       </Box>
 
@@ -421,6 +532,265 @@ const StudentDashboard = () => {
               Events you're registered for
             </Typography>
             {renderEvents(userEvents)}
+          </Box>
+        )}
+
+        {tabValue === 4 && (
+          <Box>
+            <Paper
+              elevation={3}
+              sx={{
+                padding: 4,
+                width: '100%'
+              }}
+            >
+              {/* Profile Header */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                <Typography component="h1" variant="h4" fontWeight="bold">
+                  My Profile
+                </Typography>
+                <Button
+                  onClick={handleEditToggle}
+                  startIcon={isEditingProfile ? <SaveIcon /> : <EditIcon />}
+                  variant={isEditingProfile ? "contained" : "outlined"}
+                >
+                  {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+                </Button>
+              </Box>
+
+              {profileMessage && (
+                <Alert
+                  severity={profileMessage.includes('success') ? 'success' : 'error'}
+                  sx={{ width: '100%', mb: 3 }}
+                >
+                  {profileMessage}
+                </Alert>
+              )}
+
+              <Grid container spacing={4}>
+                {/* Profile Avatar and Basic Info */}
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Avatar
+                      sx={{
+                        width: 120,
+                        height: 120,
+                        fontSize: '3rem',
+                        bgcolor: 'primary.main',
+                        mb: 2
+                      }}
+                    >
+                      {user?.name?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Typography variant="h5" fontWeight="bold" gutterBottom>
+                      {user?.name}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" gutterBottom>
+                      {user?.email}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {user?.university?.name || user?.university || 'No university set'}
+                    </Typography>
+                    {user?.major && (
+                      <Typography variant="body2" color="text.secondary">
+                        {user.major} • {user?.year || 'Year not set'}
+                      </Typography>
+                    )}
+                    <Chip
+                      label={user?.role || 'Student'}
+                      color="primary"
+                      size="small"
+                      sx={{ mt: 1 }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Profile Form */}
+                <Grid item xs={12} md={8}>
+                  <Box component="form" onSubmit={handleProfileSubmit}>
+                    <TextField
+                      margin="normal"
+                      fullWidth
+                      label="Full Name"
+                      name="name"
+                      value={profileFormData.name}
+                      onChange={handleProfileChange}
+                      disabled={!isEditingProfile}
+                      required
+                    />
+                    {isEditingProfile ? (
+                      <FormControl fullWidth margin="normal" required>
+                        <InputLabel>University</InputLabel>
+                        <Select
+                          name="university"
+                          value={profileFormData.university}
+                          label="University"
+                          onChange={handleProfileChange}
+                        >
+                          {universities.map((university) => (
+                            <MenuItem key={university._id} value={university._id}>
+                              {university.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    ) : (
+                      <TextField
+                        margin="normal"
+                        fullWidth
+                        label="University"
+                        value={user?.university?.name || 'No university set'}
+                        disabled
+                      />
+                    )}
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          margin="normal"
+                          fullWidth
+                          label="Major/Field of Study"
+                          name="major"
+                          value={profileFormData.major}
+                          onChange={handleProfileChange}
+                          disabled={!isEditingProfile}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          margin="normal"
+                          fullWidth
+                          select
+                          label="Academic Year"
+                          name="year"
+                          value={profileFormData.year}
+                          onChange={handleProfileChange}
+                          disabled={!isEditingProfile}
+                        >
+                          {yearOptions.map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                    </Grid>
+                    <TextField
+                      margin="normal"
+                      fullWidth
+                      multiline
+                      rows={4}
+                      label="Bio"
+                      name="bio"
+                      value={profileFormData.bio}
+                      onChange={handleProfileChange}
+                      disabled={!isEditingProfile}
+                      placeholder="Tell us about yourself..."
+                      helperText="Maximum 500 characters"
+                    />
+
+                    {/* Interests Section */}
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Interests
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                        {profileFormData.interests.map((interest, index) => (
+                          <Chip
+                            key={index}
+                            label={interest}
+                            onDelete={isEditingProfile ? () => handleRemoveInterest(interest) : undefined}
+                            color="primary"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+
+                      {isEditingProfile && (
+                        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                          <TextField
+                            size="small"
+                            placeholder="Add an interest"
+                            value={newInterest}
+                            onChange={(e) => setNewInterest(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInterest())}
+                          />
+                          <Button onClick={handleAddInterest} variant="outlined" size="small">
+                            Add
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Joined Clubs Section */}
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <GroupsIcon color="primary" />
+                        Joined Clubs ({user?.clubMemberships?.length || 0})
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                        {user?.clubMemberships?.length > 0 ? (
+                          user.clubMemberships.map((membership, index) => (
+                            <Chip
+                              key={index}
+                              label={`${membership.club?.name || 'Unknown Club'} (${membership.role || 'Member'})`}
+                              color="secondary"
+                              variant="outlined"
+                              size="small"
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No clubs joined yet
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+
+                    {/* Attended Events Section */}
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <EventIcon color="primary" />
+                        Attended Events ({user?.eventsAttended?.length || 0})
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                        {user?.eventsAttended?.length > 0 ? (
+                          user.eventsAttended.slice(0, 10).map((attendance, index) => (
+                            <Chip
+                              key={index}
+                              label={`${attendance.event?.title || 'Unknown Event'}`}
+                              color="info"
+                              variant="outlined"
+                              size="small"
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No events attended yet
+                          </Typography>
+                        )}
+                      </Box>
+                      {user?.eventsAttended?.length > 10 && (
+                        <Typography variant="body2" color="text.secondary">
+                          And {user.eventsAttended.length - 10} more events...
+                        </Typography>
+                      )}
+                    </Box>
+
+                    {isEditingProfile && (
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        sx={{ mt: 3 }}
+                        disabled={profileLoading}
+                        startIcon={<SaveIcon />}
+                      >
+                        {profileLoading ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                    )}
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
           </Box>
         )}
       </Box>

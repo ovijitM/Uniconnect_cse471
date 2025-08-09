@@ -36,17 +36,21 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonIcon from '@mui/icons-material/Person';
+import SchoolIcon from '@mui/icons-material/School';
+import GroupsIcon from '@mui/icons-material/Groups';
 
 const Events = () => {
     const { user } = useAuth();
     const [events, setEvents] = useState([]);
     const [clubs, setClubs] = useState([]);
+    const [universities, setUniversities] = useState([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState('');
     const [type, setType] = useState('All');
     const [clubFilter, setClubFilter] = useState('All');
+    const [universityFilter, setUniversityFilter] = useState('All');
     const [upcomingOnly, setUpcomingOnly] = useState(true);
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [newEvent, setNewEvent] = useState({
@@ -65,7 +69,8 @@ const Events = () => {
         registrationDeadline: dayjs().add(1, 'day'),
         entryFee: 0,
         requirements: '',
-        contactInfo: ''
+        contactInfo: '',
+        isPublic: true
     });
 
     const eventTypes = [
@@ -76,8 +81,9 @@ const Events = () => {
     useEffect(() => {
         fetchEvents();
         fetchClubs();
+        fetchUniversities();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, search, type, clubFilter, upcomingOnly]);
+    }, [page, search, type, clubFilter, universityFilter, upcomingOnly]);
 
     const fetchEvents = async () => {
         try {
@@ -91,12 +97,9 @@ const Events = () => {
             if (search) params.append('search', search);
             if (type && type !== 'All') params.append('type', type);
             if (clubFilter && clubFilter !== 'All') params.append('club', clubFilter);
+            if (universityFilter && universityFilter !== 'All') params.append('university', universityFilter);
 
-            // Filter by user's university if authenticated
-            const universityId = user?.university?._id || user?.university;
-            if (universityId) {
-                params.append('university', universityId);
-            }
+            // Don't filter by university - let server handle public/private logic
 
             const response = await axios.get(`/api/events?${params}`);
 
@@ -117,6 +120,16 @@ const Events = () => {
         } catch (error) {
             console.error('Error fetching clubs:', error);
             setClubs([]);
+        }
+    };
+
+    const fetchUniversities = async () => {
+        try {
+            const response = await axios.get('/api/universities');
+            setUniversities(response.data.universities || []);
+        } catch (error) {
+            console.error('Error fetching universities:', error);
+            setUniversities([]);
         }
     };
 
@@ -167,7 +180,8 @@ const Events = () => {
             registrationDeadline: dayjs().add(1, 'day'),
             entryFee: 0,
             requirements: '',
-            contactInfo: ''
+            contactInfo: '',
+            isPublic: true
         });
     };
 
@@ -250,6 +264,23 @@ const Events = () => {
                                 </Select>
                             </FormControl>
                         </Grid>
+                        <Grid item xs={12} sm={6} md={2}>
+                            <FormControl fullWidth>
+                                <InputLabel>University</InputLabel>
+                                <Select
+                                    value={universityFilter}
+                                    label="University"
+                                    onChange={(e) => setUniversityFilter(e.target.value)}
+                                >
+                                    <MenuItem value="All">All Universities</MenuItem>
+                                    {universities.map((university) => (
+                                        <MenuItem key={university._id} value={university._id}>
+                                            {university.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <FormControlLabel
                                 control={
@@ -289,98 +320,278 @@ const Events = () => {
                                                 height: '100%',
                                                 display: 'flex',
                                                 flexDirection: 'column',
-                                                transition: 'transform 0.2s ease-in-out',
+                                                position: 'relative',
+                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                cursor: 'pointer',
+                                                borderRadius: 3,
+                                                overflow: 'hidden',
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                                                 '&:hover': {
-                                                    transform: 'translateY(-4px)',
-                                                    boxShadow: 4
+                                                    transform: 'translateY(-8px) scale(1.02)',
+                                                    boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+                                                    '& .event-avatar': {
+                                                        transform: 'scale(1.1)',
+                                                        boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
+                                                    },
+                                                    '& .event-register-btn': {
+                                                        transform: 'scale(1.05)'
+                                                    }
                                                 }
                                             }}
                                         >
-                                            <CardContent sx={{ flexGrow: 1 }}>
-                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                                    <Avatar
+                                            {/* Header Section with Gradient Background */}
+                                            <Box
+                                                sx={{
+                                                    background: 'linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%)',
+                                                    p: 3,
+                                                    pb: 4,
+                                                    position: 'relative'
+                                                }}
+                                            >
+                                                <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                    <Chip
+                                                        label={event.eventType || event.type || 'Event'}
+                                                        size="small"
                                                         sx={{
-                                                            width: 60,
-                                                            height: 60,
-                                                            mr: 2,
-                                                            bgcolor: 'secondary.main'
+                                                            bgcolor: 'rgba(255,255,255,0.2)',
+                                                            color: 'white',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600,
+                                                            backdropFilter: 'blur(10px)'
+                                                        }}
+                                                    />
+                                                    <Chip
+                                                        label={event.isPublic ? 'Public' : 'Private'}
+                                                        size="small"
+                                                        sx={{
+                                                            bgcolor: event.isPublic ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 193, 7, 0.3)',
+                                                            color: 'white',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600,
+                                                            backdropFilter: 'blur(10px)'
+                                                        }}
+                                                    />
+                                                </Box>
+
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                                                    <Avatar
+                                                        className="event-avatar"
+                                                        sx={{
+                                                            width: 80,
+                                                            height: 80,
+                                                            mb: 2,
+                                                            bgcolor: 'rgba(255,255,255,0.95)',
+                                                            color: '#ff6b6b',
+                                                            transition: 'all 0.3s ease',
+                                                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                                                         }}
                                                     >
-                                                        <EventIcon fontSize="large" />
+                                                        <EventIcon sx={{ fontSize: 40 }} />
                                                     </Avatar>
-                                                    <Box>
-                                                        <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                                            {event.title}
+
+                                                    <Typography
+                                                        variant="h6"
+                                                        sx={{
+                                                            color: 'white',
+                                                            fontWeight: 700,
+                                                            fontSize: '1.1rem',
+                                                            textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                            lineHeight: 1.3,
+                                                            textAlign: 'center',
+                                                            maxWidth: '100%'
+                                                        }}
+                                                    >
+                                                        {event.title}
+                                                    </Typography>
+
+                                                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <CalendarTodayIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.9)' }} />
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                                color: 'rgba(255,255,255,0.9)',
+                                                                fontWeight: 500
+                                                            }}
+                                                        >
+                                                            {formatDate(event.startDate)}
                                                         </Typography>
-                                                        <Chip
-                                                            label={event.eventType || event.type || 'Event'}
-                                                            size="small"
-                                                            color="secondary"
-                                                            variant="outlined"
-                                                        />
                                                     </Box>
                                                 </Box>
+                                            </Box>
 
-                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                            <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                        color: 'text.secondary',
+                                                        mb: 3,
+                                                        lineHeight: 1.6,
+                                                        minHeight: '48px',
+                                                        display: '-webkit-box',
+                                                        WebkitLineClamp: 2,
+                                                        WebkitBoxOrient: 'vertical',
+                                                        overflow: 'hidden'
+                                                    }}
+                                                >
                                                     {event.description?.length > 100
                                                         ? `${event.description.substring(0, 100)}...`
-                                                        : event.description}
+                                                        : event.description || 'Join this exciting event!'}
                                                 </Typography>
 
-                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                    <CalendarTodayIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {formatDate(event.startDate)}
-                                                    </Typography>
-                                                </Box>
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                        <Box
+                                                            sx={{
+                                                                width: 36,
+                                                                height: 36,
+                                                                borderRadius: 2,
+                                                                bgcolor: 'rgba(255, 107, 107, 0.1)',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                mr: 2
+                                                            }}
+                                                        >
+                                                            <LocationOnIcon sx={{ fontSize: 18, color: '#ff6b6b' }} />
+                                                        </Box>
+                                                        <Box>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
+                                                                Venue
+                                                            </Typography>
+                                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                                {typeof event.venue === 'string' ? event.venue : (event.venue?.name || 'TBD')}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
 
-                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                    <LocationOnIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {typeof event.venue === 'string' ? event.venue : (event.venue?.name || 'TBD')}
-                                                    </Typography>
-                                                </Box>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                        <Box
+                                                            sx={{
+                                                                width: 36,
+                                                                height: 36,
+                                                                borderRadius: 2,
+                                                                bgcolor: 'rgba(76, 175, 80, 0.1)',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                mr: 2
+                                                            }}
+                                                        >
+                                                            <PersonIcon sx={{ fontSize: 18, color: '#4caf50' }} />
+                                                        </Box>
+                                                        <Box>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
+                                                                Organizer
+                                                            </Typography>
+                                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                                {event.organizer?.name || event.club?.name || 'Unknown'}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
 
-                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                    <PersonIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {event.organizer?.name || event.club?.name || 'Unknown'}
-                                                    </Typography>
-                                                </Box>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                        <Box
+                                                            sx={{
+                                                                width: 36,
+                                                                height: 36,
+                                                                borderRadius: 2,
+                                                                bgcolor: 'rgba(63, 81, 181, 0.1)',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                mr: 2
+                                                            }}
+                                                        >
+                                                            <SchoolIcon sx={{ fontSize: 18, color: '#3f51b5' }} />
+                                                        </Box>
+                                                        <Box sx={{ flex: 1 }}>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
+                                                                University
+                                                            </Typography>
+                                                            <Typography
+                                                                variant="body2"
+                                                                sx={{
+                                                                    fontWeight: 600,
+                                                                    overflow: 'hidden',
+                                                                    textOverflow: 'ellipsis',
+                                                                    whiteSpace: 'nowrap'
+                                                                }}
+                                                            >
+                                                                {event.university?.name || 'Unknown University'}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
 
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        <strong>Attendees:</strong> {event.attendees?.length || 0}
-                                                        {event.maxAttendees && `/${event.maxAttendees}`}
-                                                    </Typography>
-                                                    {event.registrationFee > 0 && (
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            <strong>Fee:</strong> ${event.registrationFee}
-                                                        </Typography>
-                                                    )}
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <GroupsIcon sx={{ fontSize: 16, color: '#ff9800' }} />
+                                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#ff9800' }}>
+                                                                {event.attendees?.length || 0}
+                                                                {event.maxAttendees && `/${event.maxAttendees}`}
+                                                            </Typography>
+                                                        </Box>
+                                                        {event.registrationFee > 0 && (
+                                                            <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>
+                                                                ${event.registrationFee}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
                                                 </Box>
                                             </CardContent>
 
-                                            <CardActions sx={{ p: 2, pt: 0 }}>
+                                            <CardActions sx={{ p: 3, pt: 0 }}>
                                                 {event.isRegistrationRequired ? (
                                                     !isUserRegistered(event) ? (
                                                         <Button
+                                                            className="event-register-btn"
                                                             fullWidth
                                                             variant="contained"
-                                                            color="secondary"
+                                                            size="large"
                                                             onClick={() => handleRegisterEvent(event._id)}
                                                             disabled={event.maxAttendees && event.attendees?.length >= event.maxAttendees}
+                                                            sx={{
+                                                                background: event.maxAttendees && event.attendees?.length >= event.maxAttendees
+                                                                    ? 'linear-gradient(135deg, #9e9e9e 0%, #757575 100%)'
+                                                                    : 'linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%)',
+                                                                borderRadius: 2,
+                                                                py: 1.5,
+                                                                fontWeight: 600,
+                                                                fontSize: '0.95rem',
+                                                                textTransform: 'none',
+                                                                transition: 'all 0.3s ease',
+                                                                boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+                                                                '&:hover': {
+                                                                    background: event.maxAttendees && event.attendees?.length >= event.maxAttendees
+                                                                        ? 'linear-gradient(135deg, #9e9e9e 0%, #757575 100%)'
+                                                                        : 'linear-gradient(135deg, #ff5252 0%, #ff8f00 100%)',
+                                                                    boxShadow: '0 6px 20px rgba(255, 107, 107, 0.4)'
+                                                                }
+                                                            }}
                                                         >
                                                             {event.maxAttendees && event.attendees?.length >= event.maxAttendees
-                                                                ? 'Full'
-                                                                : 'Register'}
+                                                                ? 'Event Full'
+                                                                : 'Register Now'}
                                                         </Button>
                                                     ) : (
                                                         <Button
                                                             fullWidth
                                                             variant="outlined"
-                                                            color="success"
+                                                            size="large"
                                                             disabled
+                                                            sx={{
+                                                                borderRadius: 2,
+                                                                py: 1.5,
+                                                                fontWeight: 600,
+                                                                fontSize: '0.95rem',
+                                                                textTransform: 'none',
+                                                                borderColor: '#4caf50',
+                                                                color: '#4caf50',
+                                                                bgcolor: 'rgba(76, 175, 80, 0.05)',
+                                                                '&.Mui-disabled': {
+                                                                    borderColor: '#4caf50',
+                                                                    color: '#4caf50'
+                                                                }
+                                                            }}
                                                         >
                                                             ✓ Registered
                                                         </Button>
@@ -389,8 +600,22 @@ const Events = () => {
                                                     <Button
                                                         fullWidth
                                                         variant="outlined"
-                                                        color="info"
+                                                        size="large"
                                                         disabled
+                                                        sx={{
+                                                            borderRadius: 2,
+                                                            py: 1.5,
+                                                            fontWeight: 600,
+                                                            fontSize: '0.95rem',
+                                                            textTransform: 'none',
+                                                            borderColor: '#2196f3',
+                                                            color: '#2196f3',
+                                                            bgcolor: 'rgba(33, 150, 243, 0.05)',
+                                                            '&.Mui-disabled': {
+                                                                borderColor: '#2196f3',
+                                                                color: '#2196f3'
+                                                            }
+                                                        }}
                                                     >
                                                         Open Event
                                                     </Button>
@@ -542,6 +767,17 @@ const Events = () => {
                                             />
                                         }
                                         label="Registration Required"
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={newEvent.isPublic !== false}
+                                                onChange={(e) => setNewEvent({ ...newEvent, isPublic: e.target.checked })}
+                                            />
+                                        }
+                                        label="Public Event (allow students from all universities)"
                                     />
                                 </Grid>
                                 {newEvent.registrationRequired && (

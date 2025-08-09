@@ -57,8 +57,8 @@ const ClubAdminDashboard = () => {
     const fetchClubAdminData = async () => {
         try {
             const [clubsRes, eventsRes] = await Promise.all([
-                axios.get('/api/clubs'),
-                axios.get('/api/events')
+                axios.get('/clubs'),
+                axios.get('/events')
             ]);
 
             // Filter clubs where user is president or officer
@@ -87,7 +87,7 @@ const ClubAdminDashboard = () => {
 
     const handleCreateEvent = async () => {
         try {
-            await axios.post('/api/events', newEvent);
+            await axios.post('/events', newEvent);
             setCreateEventDialog(false);
             resetNewEvent();
             fetchClubAdminData();

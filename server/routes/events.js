@@ -257,7 +257,10 @@ router.post('/:id/register', verifyToken, async (req, res) => {
         // Add event to user's attended events
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
-                eventsAttended: event._id
+                eventsAttended: {
+                    event: event._id,
+                    attendedDate: new Date()
+                }
             }
         });
 
@@ -294,7 +297,7 @@ router.post('/:id/unregister', verifyToken, async (req, res) => {
         // Remove event from user's attended events
         await User.findByIdAndUpdate(req.user._id, {
             $pull: {
-                eventsAttended: event._id
+                eventsAttended: { event: event._id }
             }
         });
 

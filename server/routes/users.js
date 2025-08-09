@@ -47,7 +47,24 @@ router.put('/profile', verifyToken, async (req, res) => {
         interests
       },
       { new: true, runValidators: true }
-    ).select('-password');
+    ).select('-password')
+      .populate('university', 'name code location type')
+      .populate({
+        path: 'clubMemberships.club',
+        select: 'name category description university',
+        populate: {
+          path: 'university',
+          select: 'name code'
+        }
+      })
+      .populate({
+        path: 'eventsAttended.event',
+        select: 'title description eventType startDate venue university',
+        populate: {
+          path: 'university',
+          select: 'name code'
+        }
+      });
 
     res.json({
       message: 'Profile updated successfully',
