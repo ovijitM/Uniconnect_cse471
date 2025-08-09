@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('./models/User');
+const University = require('./models/University');
 require('dotenv').config();
 
 const createAdminUser = async () => {
@@ -20,13 +21,20 @@ const createAdminUser = async () => {
             return;
         }
 
+        // Get first university for admin user
+        const firstUniversity = await University.findOne();
+        if (!firstUniversity) {
+            console.error('No universities found. Please seed universities first.');
+            return;
+        }
+
         // Create admin user
         const adminUser = new User({
             name: 'System Administrator',
             email: 'admin@uniconnect.com',
             password: 'admin123', // This will be hashed automatically by the pre-save hook
             role: 'Administrator',
-            university: 'UniConnect System',
+            university: firstUniversity._id,
             major: 'System Administration',
             year: 'Senior'
         });

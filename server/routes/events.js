@@ -11,24 +11,30 @@ const router = express.Router();// @route   GET /api/events
 router.get('/', async (req, res) => {
     try {
         const {
+            search,
             type,
             club,
-            search,
-            upcoming = true,
+            upcoming = 'true',
             page = 1,
-            limit = 12
+            limit = 12,
+            university
         } = req.query;
 
         let query = {};
 
+        // Filter by university if specified
+        if (university) {
+            query.university = university;
+        }
+
         // Filter by event type
         if (type && type !== 'All') {
-            query.type = type;
+            query.eventType = type;
         }
 
         // Filter by club
         if (club) {
-            query.organizer = club;
+            query.club = club;
         }
 
         // Search functionality
@@ -43,8 +49,9 @@ router.get('/', async (req, res) => {
         }
 
         const events = await Event.find(query)
-            .populate('organizer', 'name category')
-            .populate('attendees', 'name email')
+            .populate('club', 'name category university')
+            .populate('university', 'name code location')
+            .populate('attendees.user', 'name email')
             .limit(limit * 1)
             .skip((page - 1) * limit)
             .sort({ startDate: 1 });
@@ -69,8 +76,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const event = await Event.findById(req.params.id)
-            .populate('organizer', 'name category description president')
-            .populate('attendees', 'name email profilePicture major year');
+            .populate('club', 'name category description president university')
+            .populate('university', 'name code location')
+            .populate('attendees.user', 'name email profilePicture major year');
 
         if (!event) {
             return res.status(404).json({ message: 'Event not found' });
@@ -95,6 +103,8 @@ router.post('/', verifyToken, async (req, res) => {
             organizer,
             startDate,
             endDate,
+            startTime,
+            endTime,
             venue,
             capacity,
             registrationRequired,
@@ -106,9 +116,15 @@ router.post('/', verifyToken, async (req, res) => {
         } = req.body;
 
         // Verify user is a member of the organizing club
-        const club = await Club.findById(organizer);
+        const club = await Club.findById(organizer).populate('university');
         if (!club) {
             return res.status(404).json({ message: 'Club not found' });
+        }
+
+        // Verify club belongs to user's university
+        const userUniversityId = req.user.university?._id || req.user.university;
+        if (club.university._id.toString() !== userUniversityId.toString()) {
+            return res.status(403).json({ message: 'You can only create events for clubs at your university' });
         }
 
         const isMember = club.members.some(
@@ -122,26 +138,29 @@ router.post('/', verifyToken, async (req, res) => {
         const event = new Event({
             title,
             description,
-            type,
-            organizer,
+            eventType: type,
+            club: organizer,
+            university: club.university._id, // Associate event with university
             startDate,
             endDate,
-            venue,
-            capacity,
-            registrationRequired,
+            startTime: startTime || '09:00',
+            endTime: endTime || '17:00',
+            venue: venue || 'TBD',
+            maxAttendees: capacity,
+            isRegistrationRequired: registrationRequired,
             registrationDeadline,
-            entryFee,
+            registrationFee: entryFee || 0,
             requirements,
             contactInfo,
-            tags,
-            createdBy: req.user._id
+            tags
         });
 
         await event.save();
 
         const populatedEvent = await Event.findById(event._id)
-            .populate('organizer', 'name category')
-            .populate('attendees', 'name email');
+            .populate('club', 'name category')
+            .populate('university', 'name code location')
+            .populate('attendees.user', 'name email');
 
         res.status(201).json({
             message: 'Event created successfully',

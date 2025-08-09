@@ -16,6 +16,11 @@ const eventSchema = new mongoose.Schema({
         ref: 'Club',
         required: [true, 'Club is required']
     },
+    university: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'University',
+        required: [true, 'University is required']
+    },
     eventType: {
         type: String,
         required: [true, 'Event type is required'],

@@ -40,6 +40,11 @@ const clubSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
+    university: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'University',
+        required: [true, 'University is required']
+    },
     advisors: [{
         type: String,
         trim: true

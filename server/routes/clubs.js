@@ -7,12 +7,17 @@ const { verifyToken, requireRole } = require('./auth');
 const router = express.Router();
 
 // @route   GET /api/clubs
-// @desc    Get all clubs
+// @desc    Get all clubs (optionally filtered by university)
 // @access  Public
 router.get('/', async (req, res) => {
     try {
-        const { category, search, page = 1, limit = 12 } = req.query;
+        const { category, search, page = 1, limit = 12, university } = req.query;
         let query = { isActive: true };
+
+        // Filter by university if specified
+        if (university) {
+            query.university = university;
+        }
 
         // Filter by category
         if (category && category !== 'All') {
@@ -30,6 +35,7 @@ router.get('/', async (req, res) => {
         const clubs = await Club.find(query)
             .populate('president', 'name email')
             .populate('members.user', 'name email')
+            .populate('university', 'name code location')
             .limit(limit * 1)
             .skip((page - 1) * limit)
             .sort({ createdAt: -1 });
@@ -53,7 +59,8 @@ router.get('/:id', async (req, res) => {
     try {
         const club = await Club.findById(req.params.id)
             .populate('president', 'name email profilePicture')
-            .populate('members.user', 'name email profilePicture major year');
+            .populate('members.user', 'name email profilePicture major year')
+            .populate('university', 'name code location');
 
         if (!club) {
             return res.status(404).json({ message: 'Club not found' });
@@ -82,10 +89,13 @@ router.post('/', verifyToken, requireRole('Club Admin', 'Administrator'), async 
             membershipFee
         } = req.body;
 
-        // Check if club with same name exists
-        const existingClub = await Club.findOne({ name });
+        // Check if club with same name exists at the same university
+        const existingClub = await Club.findOne({
+            name,
+            university: req.user.university
+        });
         if (existingClub) {
-            return res.status(400).json({ message: 'Club with this name already exists' });
+            return res.status(400).json({ message: 'Club with this name already exists at your university' });
         }
 
         const club = new Club({
@@ -93,6 +103,7 @@ router.post('/', verifyToken, requireRole('Club Admin', 'Administrator'), async 
             description,
             category,
             president: req.user._id,
+            university: req.user.university, // Associate club with user's university
             contactEmail,
             advisors,
             socialMedia,
@@ -118,7 +129,8 @@ router.post('/', verifyToken, requireRole('Club Admin', 'Administrator'), async 
 
         const populatedClub = await Club.findById(club._id)
             .populate('president', 'name email')
-            .populate('members.user', 'name email');
+            .populate('members.user', 'name email')
+            .populate('university', 'name code location');
 
         res.status(201).json({
             message: 'Club created successfully',
@@ -135,10 +147,16 @@ router.post('/', verifyToken, requireRole('Club Admin', 'Administrator'), async 
 // @access  Private
 router.post('/:id/join', verifyToken, async (req, res) => {
     try {
-        const club = await Club.findById(req.params.id);
+        const club = await Club.findById(req.params.id).populate('university');
 
         if (!club) {
             return res.status(404).json({ message: 'Club not found' });
+        }
+
+        // Check if club belongs to user's university
+        const userUniversityId = req.user.university?._id || req.user.university;
+        if (club.university._id.toString() !== userUniversityId.toString()) {
+            return res.status(403).json({ message: 'You can only join clubs at your university' });
         }
 
         // Check if user is already a member
