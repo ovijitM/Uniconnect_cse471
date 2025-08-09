@@ -411,7 +411,7 @@ const Events = () => {
                 )}
 
                 {/* Floating Action Button for Creating Event */}
-                {user && userClubs.length > 0 && (
+                {user && (user.role === 'Club Admin' || user.role === 'Administrator') && userClubs.length > 0 && (
                     <Fab
                         color="secondary"
                         aria-label="create event"
@@ -420,9 +420,7 @@ const Events = () => {
                     >
                         <AddIcon />
                     </Fab>
-                )}
-
-                {/* Create Event Dialog */}
+                )}                {/* Create Event Dialog */}
                 <Dialog
                     open={createDialogOpen}
                     onClose={() => setCreateDialogOpen(false)}

@@ -281,7 +281,7 @@ const Clubs = () => {
             )}
 
             {/* Floating Action Button for Creating Club */}
-            {user && (
+            {user && (user.role === 'Club Admin' || user.role === 'Administrator') && (
                 <Fab
                     color="primary"
                     aria-label="create club"
@@ -290,9 +290,7 @@ const Clubs = () => {
                 >
                     <AddIcon />
                 </Fab>
-            )}
-
-            {/* Create Club Dialog */}
+            )}            {/* Create Club Dialog */}
             <Dialog
                 open={createDialogOpen}
                 onClose={() => setCreateDialogOpen(false)}

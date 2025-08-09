@@ -2,31 +2,9 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const Club = require('../models/Club');
 const User = require('../models/User');
+const { verifyToken, requireRole } = require('./auth');
 
 const router = express.Router();
-
-// Middleware to verify JWT token
-const verifyToken = async (req, res, next) => {
-    try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
-
-        if (!token) {
-            return res.status(401).json({ message: 'No token provided' });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.userId).select('-password');
-
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid token' });
-        }
-
-        req.user = user;
-        next();
-    } catch (error) {
-        res.status(401).json({ message: 'Invalid token' });
-    }
-};
 
 // @route   GET /api/clubs
 // @desc    Get all clubs
@@ -90,8 +68,8 @@ router.get('/:id', async (req, res) => {
 
 // @route   POST /api/clubs
 // @desc    Create a new club
-// @access  Private
-router.post('/', verifyToken, async (req, res) => {
+// @access  Private (Club Admin or Administrator only)
+router.post('/', verifyToken, requireRole('Club Admin', 'Administrator'), async (req, res) => {
     try {
         const {
             name,

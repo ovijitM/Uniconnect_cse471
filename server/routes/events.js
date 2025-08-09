@@ -3,33 +3,9 @@ const jwt = require('jsonwebtoken');
 const Event = require('../models/Event');
 const Club = require('../models/Club');
 const User = require('../models/User');
+const { verifyToken, requireRole } = require('./auth');
 
-const router = express.Router();
-
-// Middleware to verify JWT token
-const verifyToken = async (req, res, next) => {
-    try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
-
-        if (!token) {
-            return res.status(401).json({ message: 'No token provided' });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.userId).select('-password');
-
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid token' });
-        }
-
-        req.user = user;
-        next();
-    } catch (error) {
-        res.status(401).json({ message: 'Invalid token' });
-    }
-};
-
-// @route   GET /api/events
+const router = express.Router();// @route   GET /api/events
 // @desc    Get all events
 // @access  Public
 router.get('/', async (req, res) => {

@@ -10,6 +10,44 @@ const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
+// Middleware to verify JWT token
+const verifyToken = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
+// Middleware to check roles
+const requireRole = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied. Insufficient permissions.' });
+    }
+
+    next();
+  };
+};
+
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
@@ -17,6 +55,7 @@ router.post('/register', [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('role').isIn(['Student', 'Club Admin']).withMessage('Role must be Student or Club Admin'),
   body('university').trim().notEmpty().withMessage('University is required')
 ], async (req, res) => {
   try {
@@ -25,7 +64,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, university, major, year } = req.body;
+    const { name, email, password, role, university, major, year } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -38,6 +77,7 @@ router.post('/register', [
       name,
       email,
       password,
+      role,
       university,
       major,
       year
@@ -55,6 +95,7 @@ router.post('/register', [
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         university: user.university,
         major: user.major,
         year: user.year
@@ -103,6 +144,7 @@ router.post('/login', [
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         university: user.university,
         major: user.major,
         year: user.year
@@ -115,3 +157,5 @@ router.post('/login', [
 });
 
 module.exports = router;
+module.exports.verifyToken = verifyToken;
+module.exports.requireRole = requireRole;

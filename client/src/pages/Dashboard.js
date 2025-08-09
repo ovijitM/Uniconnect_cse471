@@ -22,7 +22,27 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
+// Import role-specific components
+import AdminDashboard from '../components/AdminDashboard';
+import ClubAdminDashboard from '../components/ClubAdminDashboard';
+
 const Dashboard = () => {
+  const { user } = useAuth();
+
+  // Render different dashboards based on user role
+  if (user?.role === 'Administrator') {
+    return <AdminDashboard />;
+  }
+
+  if (user?.role === 'Club Admin') {
+    return <ClubAdminDashboard />;
+  }
+
+  // Default Student Dashboard
+  return <StudentDashboard />;
+};
+
+const StudentDashboard = () => {
   const { user } = useAuth();
   const [clubs, setClubs] = useState([]);
   const [events, setEvents] = useState([]);
@@ -277,7 +297,7 @@ const Dashboard = () => {
           Welcome back, {user?.name}! 👋
         </Typography>
         <Typography variant="h6" sx={{ opacity: 0.9 }}>
-          {user?.university} • {user?.major} • {user?.year}
+          {user?.university} • {user?.major} • {user?.year} • Student Dashboard
         </Typography>
       </Paper>
 

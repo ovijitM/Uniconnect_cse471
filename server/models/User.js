@@ -19,6 +19,12 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: 6
   },
+  role: {
+    type: String,
+    enum: ['Student', 'Club Admin', 'Administrator'],
+    default: 'Student',
+    required: [true, 'User role is required']
+  },
   university: {
     type: String,
     required: [true, 'University is required'],

@@ -19,6 +19,7 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
+    role: 'Student',
     university: '',
     major: '',
     year: ''
@@ -30,6 +31,7 @@ const Register = () => {
   const navigate = useNavigate();
 
   const yearOptions = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
+  const roleOptions = ['Student', 'Club Admin'];
 
   const handleChange = (e) => {
     setFormData({
@@ -125,6 +127,24 @@ const Register = () => {
               onChange={handleChange}
               helperText="Minimum 6 characters"
             />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              select
+              id="role"
+              label="Account Type"
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              helperText="Choose your account type"
+            >
+              {roleOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
             <TextField
               margin="normal"
               required
