@@ -55,9 +55,10 @@ const StudentDashboard = () => {
 
   const fetchClubsAndEvents = async () => {
     try {
+      const universityId = user?.university?._id || user?.university;
       const [clubsRes, eventsRes] = await Promise.all([
-        axios.get('/api/clubs'),
-        axios.get('/api/events')
+        axios.get(`/api/clubs${universityId ? `?university=${universityId}` : ''}`),
+        axios.get(`/api/events${universityId ? `?university=${universityId}` : ''}`)
       ]);
 
       setClubs(clubsRes.data.clubs || []);
@@ -297,7 +298,7 @@ const StudentDashboard = () => {
           Welcome back, {user?.name}! 👋
         </Typography>
         <Typography variant="h6" sx={{ opacity: 0.9 }}>
-          {user?.university} • {user?.major} • {user?.year} • Student Dashboard
+          {user?.university?.name || user?.university} • {user?.major} • {user?.year} • Student Dashboard
         </Typography>
       </Paper>
 

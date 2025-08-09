@@ -67,7 +67,14 @@ const Clubs = () => {
             if (search) params.append('search', search);
             if (category && category !== 'All') params.append('category', category);
 
+            // Filter by user's university if authenticated
+            const universityId = user?.university?._id || user?.university;
+            if (universityId) {
+                params.append('university', universityId);
+            }
+
             const response = await axios.get(`/api/clubs?${params}`);
+
             setClubs(response.data.clubs || []);
             setTotalPages(response.data.totalPages || 1);
         } catch (error) {

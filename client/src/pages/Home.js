@@ -257,7 +257,7 @@ const Home = () => {
                             {event.title}
                           </Typography>
                           <Typography variant="caption" color="secondary.main">
-                            {event.type}
+                            {event.eventType || event.type || 'Event'}
                           </Typography>
                         </Box>
                       </Box>
@@ -273,7 +273,7 @@ const Home = () => {
                         </Typography>
                       </Box>
                       <Typography variant="body2" color="text.secondary">
-                        by {event.organizer?.name}
+                        by {event.organizer?.name || event.club?.name || 'Unknown'}
                       </Typography>
                     </CardContent>
                   </Card>

@@ -92,7 +92,14 @@ const Events = () => {
             if (type && type !== 'All') params.append('type', type);
             if (clubFilter && clubFilter !== 'All') params.append('club', clubFilter);
 
+            // Filter by user's university if authenticated
+            const universityId = user?.university?._id || user?.university;
+            if (universityId) {
+                params.append('university', universityId);
+            }
+
             const response = await axios.get(`/api/events?${params}`);
+
             setEvents(response.data.events || []);
             setTotalPages(response.data.totalPages || 1);
         } catch (error) {
@@ -306,7 +313,7 @@ const Events = () => {
                                                             {event.title}
                                                         </Typography>
                                                         <Chip
-                                                            label={event.type}
+                                                            label={event.eventType || event.type || 'Event'}
                                                             size="small"
                                                             color="secondary"
                                                             variant="outlined"
@@ -330,41 +337,41 @@ const Events = () => {
                                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                                     <LocationOnIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        {event.venue?.name || 'TBD'}
+                                                        {typeof event.venue === 'string' ? event.venue : (event.venue?.name || 'TBD')}
                                                     </Typography>
                                                 </Box>
 
                                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                                     <PersonIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        {event.organizer?.name}
+                                                        {event.organizer?.name || event.club?.name || 'Unknown'}
                                                     </Typography>
                                                 </Box>
 
                                                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                                     <Typography variant="body2" color="text.secondary">
                                                         <strong>Attendees:</strong> {event.attendees?.length || 0}
-                                                        {event.capacity && `/${event.capacity}`}
+                                                        {event.maxAttendees && `/${event.maxAttendees}`}
                                                     </Typography>
-                                                    {event.entryFee > 0 && (
+                                                    {event.registrationFee > 0 && (
                                                         <Typography variant="body2" color="text.secondary">
-                                                            <strong>Fee:</strong> ${event.entryFee}
+                                                            <strong>Fee:</strong> ${event.registrationFee}
                                                         </Typography>
                                                     )}
                                                 </Box>
                                             </CardContent>
 
                                             <CardActions sx={{ p: 2, pt: 0 }}>
-                                                {event.registrationRequired ? (
+                                                {event.isRegistrationRequired ? (
                                                     !isUserRegistered(event) ? (
                                                         <Button
                                                             fullWidth
                                                             variant="contained"
                                                             color="secondary"
                                                             onClick={() => handleRegisterEvent(event._id)}
-                                                            disabled={event.capacity && event.attendees?.length >= event.capacity}
+                                                            disabled={event.maxAttendees && event.attendees?.length >= event.maxAttendees}
                                                         >
-                                                            {event.capacity && event.attendees?.length >= event.capacity
+                                                            {event.maxAttendees && event.attendees?.length >= event.maxAttendees
                                                                 ? 'Full'
                                                                 : 'Register'}
                                                         </Button>

@@ -21,7 +21,7 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    university: user?.university || '',
+    university: user?.university?._id || user?.university || '',
     major: user?.major || '',
     year: user?.year || '',
     bio: user?.bio || '',
@@ -80,7 +80,7 @@ const Profile = () => {
       // Reset form data when starting to edit
       setFormData({
         name: user?.name || '',
-        university: user?.university || '',
+        university: user?.university?._id || user?.university || '',
         major: user?.major || '',
         year: user?.year || '',
         bio: user?.bio || '',
@@ -148,9 +148,23 @@ const Profile = () => {
                 <Typography variant="h5" fontWeight="bold" gutterBottom>
                   {user?.name}
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
+                <Typography variant="body1" color="text.secondary" gutterBottom>
                   {user?.email}
                 </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {user?.university?.name || user?.university || 'No university set'}
+                </Typography>
+                {user?.major && (
+                  <Typography variant="body2" color="text.secondary">
+                    {user.major} • {user?.year || 'Year not set'}
+                  </Typography>
+                )}
+                <Chip
+                  label={user?.role || 'Student'}
+                  color="primary"
+                  size="small"
+                  sx={{ mt: 1 }}
+                />
               </Box>
             </Grid>
 

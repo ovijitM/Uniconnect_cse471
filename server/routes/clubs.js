@@ -230,4 +230,24 @@ router.post('/:id/leave', verifyToken, async (req, res) => {
     }
 });
 
+// @route   DELETE /api/clubs/:id
+// @desc    Delete a club (Admin only)
+// @access  Private (Administrator only)
+router.delete('/:id', verifyToken, requireRole('Administrator'), async (req, res) => {
+    try {
+        const club = await Club.findById(req.params.id);
+
+        if (!club) {
+            return res.status(404).json({ message: 'Club not found' });
+        }
+
+        await Club.findByIdAndDelete(req.params.id);
+
+        res.json({ message: 'Club deleted successfully' });
+    } catch (error) {
+        console.error('Delete club error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

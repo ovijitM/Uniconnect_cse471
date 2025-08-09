@@ -1,31 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { verifyToken, requireRole } = require('./auth');
 
 const router = express.Router();
-
-// Middleware to verify JWT token
-const verifyToken = async (req, res, next) => {
-  try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
-
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid token' });
-    }
-
-    req.user = user;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Invalid token' });
-  }
-};
 
 // @route   GET /api/users/profile
 // @desc    Get current user profile
@@ -82,17 +60,53 @@ router.put('/profile', verifyToken, async (req, res) => {
 });
 
 // @route   GET /api/users
-// @desc    Get all users (for connecting)
+// @desc    Get users - all users for admin, filtered by university for others
 // @access  Private
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const users = await User.find({ _id: { $ne: req.user._id } })
-      .select('-password')
-      .limit(20);
+    let users;
+
+    if (req.user.role === 'Administrator') {
+      // Administrators can see all users
+      users = await User.find({})
+        .select('-password')
+        .populate('university', 'name code location type')
+        .sort({ createdAt: -1 });
+    } else {
+      // Regular users only see users from same university (excluding themselves)
+      users = await User.find({
+        _id: { $ne: req.user._id },
+        university: req.user.university._id
+      })
+        .select('-password')
+        .populate('university', 'name code')
+        .limit(20);
+    }
 
     res.json({ users });
   } catch (error) {
     console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PATCH /api/users/:id/deactivate
+// @desc    Deactivate/reactivate a user
+// @access  Private (Administrator only)
+router.patch('/:id/deactivate', verifyToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.json({ message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully` });
+  } catch (error) {
+    console.error('Toggle user status error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

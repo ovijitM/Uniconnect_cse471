@@ -70,6 +70,7 @@ const AdminDashboard = () => {
             fetchAdminData();
         } catch (error) {
             console.error('Error deactivating user:', error);
+            alert('Failed to update user status');
         }
     };
 
@@ -192,7 +193,7 @@ const AdminDashboard = () => {
                                                 size="small"
                                             />
                                         </TableCell>
-                                        <TableCell>{user.university}</TableCell>
+                                        <TableCell>{user.university?.name || user.university}</TableCell>
                                         <TableCell>
                                             <Chip
                                                 label={user.isActive ? 'Active' : 'Inactive'}

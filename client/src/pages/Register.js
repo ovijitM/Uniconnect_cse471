@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Paper,
@@ -8,7 +8,8 @@ import {
   Box,
   Alert,
   Link as MuiLink,
-  MenuItem
+  MenuItem,
+  CircularProgress
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -24,14 +25,38 @@ const Register = () => {
     major: '',
     year: ''
   });
+  const [universities, setUniversities] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [universitiesLoading, setUniversitiesLoading] = useState(true);
 
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const yearOptions = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
   const roleOptions = ['Student', 'Club Admin'];
+
+  // Fetch universities on component mount
+  useEffect(() => {
+    const fetchUniversities = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/universities');
+        const data = await response.json();
+
+        if (data.success) {
+          setUniversities(data.universities);
+        } else {
+          console.error('Failed to fetch universities');
+        }
+      } catch (error) {
+        console.error('Error fetching universities:', error);
+      } finally {
+        setUniversitiesLoading(false);
+      }
+    };
+
+    fetchUniversities();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -44,6 +69,30 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Client-side validation
+    if (!formData.name.trim()) {
+      setError('Name is required');
+      setLoading(false);
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      setLoading(false);
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
+    if (!formData.university) {
+      setError('Please select a university');
+      setLoading(false);
+      return;
+    }
+
+    console.log('Form data being submitted:', formData);
 
     const result = await register(formData);
 
@@ -149,12 +198,28 @@ const Register = () => {
               margin="normal"
               required
               fullWidth
+              select
               id="university"
               label="University"
               name="university"
               value={formData.university}
               onChange={handleChange}
-            />
+              disabled={universitiesLoading}
+              helperText={universitiesLoading ? "Loading universities..." : "Select your university"}
+            >
+              {universitiesLoading ? (
+                <MenuItem disabled>
+                  <CircularProgress size={20} sx={{ mr: 1 }} />
+                  Loading...
+                </MenuItem>
+              ) : (
+                universities.map((university) => (
+                  <MenuItem key={university._id} value={university._id}>
+                    {university.name} ({university.code})
+                  </MenuItem>
+                ))
+              )}
+            </TextField>
             <TextField
               margin="normal"
               fullWidth

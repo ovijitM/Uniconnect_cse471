@@ -62,6 +62,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
+      console.log('Attempting registration with data:', userData);
       const response = await axios.post('/auth/register', userData);
       const { token, user } = response.data;
 
@@ -71,9 +72,21 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
+      console.error('Registration error:', error.response?.data || error.message);
+
+      let errorMessage = 'Registration failed';
+
+      if (error.response?.data) {
+        if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.errors && error.response.data.errors.length > 0) {
+          errorMessage = error.response.data.errors[0].msg;
+        }
+      }
+
       return {
         success: false,
-        error: error.response?.data?.message || 'Registration failed'
+        error: errorMessage
       };
     }
   };
