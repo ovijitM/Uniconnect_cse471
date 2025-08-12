@@ -360,4 +360,162 @@ router.get('/club/:clubId', async (req, res) => {
     }
 });
 
+// @route   GET /api/events/managed
+// @desc    Get events for clubs managed by the current user
+// @access  Private
+router.get('/managed', verifyToken, async (req, res) => {
+    try {
+        // First find clubs where user is president
+        const Club = require('../models/Club');
+        const managedClubs = await Club.find({ president: req.user.id });
+        const clubIds = managedClubs.map(club => club._id);
+
+        // Find events for those clubs
+        const events = await Event.find({ club: { $in: clubIds } })
+            .populate('club', 'name')
+            .populate('attendees.user', 'name email')
+            .populate('organizers', 'name email')
+            .sort({ startDate: -1 });
+
+        res.json({ events });
+    } catch (error) {
+        console.error('Get managed events error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   PUT /api/events/:id
+// @desc    Update event details (club president only)
+// @access  Private
+router.put('/:id', verifyToken, async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('club');
+
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+
+        // Check if user is the club president or admin
+        if (event.club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+            return res.status(403).json({ message: 'Not authorized to update this event' });
+        }
+
+        const {
+            title, description, eventType, startDate, endDate, startTime, endTime,
+            venue, maxAttendees, registrationFee, registrationDeadline,
+            isRegistrationRequired, tags, poster
+        } = req.body;
+
+        // Update event fields
+        if (title) event.title = title;
+        if (description) event.description = description;
+        if (eventType) event.eventType = eventType;
+        if (startDate) event.startDate = startDate;
+        if (endDate) event.endDate = endDate;
+        if (startTime) event.startTime = startTime;
+        if (endTime) event.endTime = endTime;
+        if (venue) event.venue = venue;
+        if (maxAttendees !== undefined) event.maxAttendees = maxAttendees;
+        if (registrationFee !== undefined) event.registrationFee = registrationFee;
+        if (registrationDeadline) event.registrationDeadline = registrationDeadline;
+        if (isRegistrationRequired !== undefined) event.isRegistrationRequired = isRegistrationRequired;
+        if (tags) event.tags = tags;
+        if (poster) event.poster = poster;
+
+        await event.save();
+
+        const updatedEvent = await Event.findById(event._id)
+            .populate('club', 'name')
+            .populate('attendees.user', 'name email')
+            .populate('organizers', 'name email');
+
+        res.json({ event: updatedEvent });
+    } catch (error) {
+        console.error('Update event error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   PUT /api/events/:id/attendees/:userId/attendance
+// @desc    Mark attendee attendance (club president only)
+// @access  Private
+router.put('/:id/attendees/:userId/attendance', verifyToken, async (req, res) => {
+    try {
+        const { attended } = req.body;
+        const event = await Event.findById(req.params.id).populate('club');
+
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+
+        // Check if user is the club president or admin
+        if (event.club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+            return res.status(403).json({ message: 'Not authorized to mark attendance for this event' });
+        }
+
+        // Find attendee
+        const attendee = event.attendees.find(attendee =>
+            attendee.user.toString() === req.params.userId
+        );
+
+        if (!attendee) {
+            return res.status(404).json({ message: 'Attendee not found in this event' });
+        }
+
+        // Update attendance
+        attendee.attended = attended;
+        await event.save();
+
+        const updatedEvent = await Event.findById(event._id)
+            .populate('club', 'name')
+            .populate('attendees.user', 'name email')
+            .populate('organizers', 'name email');
+
+        res.json({ event: updatedEvent });
+    } catch (error) {
+        console.error('Update attendance error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   DELETE /api/events/:id/attendees/:userId
+// @desc    Remove attendee from event (club president only)
+// @access  Private
+router.delete('/:id/attendees/:userId', verifyToken, async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('club');
+
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+
+        // Check if user is the club president or admin
+        if (event.club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+            return res.status(403).json({ message: 'Not authorized to remove attendees from this event' });
+        }
+
+        // Find and remove attendee
+        const attendeeIndex = event.attendees.findIndex(attendee =>
+            attendee.user.toString() === req.params.userId
+        );
+
+        if (attendeeIndex === -1) {
+            return res.status(404).json({ message: 'Attendee not found in this event' });
+        }
+
+        event.attendees.splice(attendeeIndex, 1);
+        await event.save();
+
+        const updatedEvent = await Event.findById(event._id)
+            .populate('club', 'name')
+            .populate('attendees.user', 'name email')
+            .populate('organizers', 'name email');
+
+        res.json({ event: updatedEvent });
+    } catch (error) {
+        console.error('Remove attendee error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

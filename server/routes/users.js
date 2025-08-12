@@ -128,4 +128,30 @@ router.patch('/:id/deactivate', verifyToken, requireRole('Administrator'), async
   }
 });
 
+// @route   GET /api/users/search
+// @desc    Search users by email (for adding to clubs)
+// @access  Private
+router.get('/search', verifyToken, async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() })
+      .select('-password')
+      .populate('university', 'name code');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('Search user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
