@@ -98,6 +98,30 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 });
 
+// @route   GET /api/events/managed
+// @desc    Get events for clubs managed by the current user
+// @access  Private
+router.get('/managed', verifyToken, async (req, res) => {
+    try {
+        // First find clubs where user is president
+        const Club = require('../models/Club');
+        const managedClubs = await Club.find({ president: req.user._id });
+        const clubIds = managedClubs.map(club => club._id);
+
+        // Find events for those clubs
+        const events = await Event.find({ club: { $in: clubIds } })
+            .populate('club', 'name')
+            .populate('attendees.user', 'name email')
+            .populate('organizers', 'name email')
+            .sort({ startDate: -1 });
+
+        res.json({ events });
+    } catch (error) {
+        console.error('Get managed events error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   GET /api/events/:id
 // @desc    Get event by ID
 // @access  Public
@@ -360,30 +384,6 @@ router.get('/club/:clubId', async (req, res) => {
     }
 });
 
-// @route   GET /api/events/managed
-// @desc    Get events for clubs managed by the current user
-// @access  Private
-router.get('/managed', verifyToken, async (req, res) => {
-    try {
-        // First find clubs where user is president
-        const Club = require('../models/Club');
-        const managedClubs = await Club.find({ president: req.user.id });
-        const clubIds = managedClubs.map(club => club._id);
-
-        // Find events for those clubs
-        const events = await Event.find({ club: { $in: clubIds } })
-            .populate('club', 'name')
-            .populate('attendees.user', 'name email')
-            .populate('organizers', 'name email')
-            .sort({ startDate: -1 });
-
-        res.json({ events });
-    } catch (error) {
-        console.error('Get managed events error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
 // @route   PUT /api/events/:id
 // @desc    Update event details (club president only)
 // @access  Private
@@ -396,7 +396,7 @@ router.put('/:id', verifyToken, async (req, res) => {
         }
 
         // Check if user is the club president or admin
-        if (event.club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+        if (event.club?.president?.toString() !== req.user._id.toString() && req.user.role !== 'Administrator') {
             return res.status(403).json({ message: 'Not authorized to update this event' });
         }
 
@@ -449,13 +449,13 @@ router.put('/:id/attendees/:userId/attendance', verifyToken, async (req, res) =>
         }
 
         // Check if user is the club president or admin
-        if (event.club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+        if (event.club?.president?.toString() !== req.user._id.toString() && req.user.role !== 'Administrator') {
             return res.status(403).json({ message: 'Not authorized to mark attendance for this event' });
         }
 
         // Find attendee
-        const attendee = event.attendees.find(attendee =>
-            attendee.user.toString() === req.params.userId
+        const attendee = event.attendees?.find(attendee =>
+            attendee?.user?.toString() === req.params.userId
         );
 
         if (!attendee) {
@@ -490,13 +490,13 @@ router.delete('/:id/attendees/:userId', verifyToken, async (req, res) => {
         }
 
         // Check if user is the club president or admin
-        if (event.club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+        if (event.club?.president?.toString() !== req.user._id.toString() && req.user.role !== 'Administrator') {
             return res.status(403).json({ message: 'Not authorized to remove attendees from this event' });
         }
 
         // Find and remove attendee
-        const attendeeIndex = event.attendees.findIndex(attendee =>
-            attendee.user.toString() === req.params.userId
+        const attendeeIndex = event.attendees?.findIndex(attendee =>
+            attendee?.user?.toString() === req.params.userId
         );
 
         if (attendeeIndex === -1) {
@@ -514,6 +514,53 @@ router.delete('/:id/attendees/:userId', verifyToken, async (req, res) => {
         res.json({ event: updatedEvent });
     } catch (error) {
         console.error('Remove attendee error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   DELETE /api/events/:id
+// @desc    Delete an event (Administrator, Club President, or Event Organizer)
+// @access  Private (Administrator, Club President, or Event Organizer)
+router.delete('/:id', verifyToken, async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('club');
+
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+
+        // Check if user is Administrator, club president, or event organizer
+        const isAdmin = req.user.role === 'Administrator';
+        const isClubPresident = event.club?.president?.toString() === req.user._id.toString();
+        const isOrganizer = event.organizers && Array.isArray(event.organizers) &&
+            event.organizers.some(org => org && org.toString && org.toString() === req.user._id.toString());
+
+        // Debug logging
+        console.log('Event delete authorization check:', {
+            userId: req.user._id.toString(),
+            userRole: req.user.role,
+            eventId: event._id.toString(),
+            eventTitle: event.title,
+            clubId: event.club?._id?.toString(),
+            clubPresidentId: event.club?.president?.toString(),
+            organizers: event.organizers?.map(org => org.toString()),
+            isAdmin,
+            isClubPresident,
+            isOrganizer
+        });
+
+        if (!isAdmin && !isClubPresident && !isOrganizer) {
+            console.log('Access denied for event deletion');
+            return res.status(403).json({
+                message: 'Access denied. Only administrators, club presidents, or event organizers can delete events.'
+            });
+        }
+
+        await Event.findByIdAndDelete(req.params.id);
+
+        res.json({ message: 'Event deleted successfully' });
+    } catch (error) {
+        console.error('Delete event error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
