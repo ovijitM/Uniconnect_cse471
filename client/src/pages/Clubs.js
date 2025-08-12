@@ -423,8 +423,8 @@ const Clubs = () => {
                 </>
             )}
 
-            {/* Floating Action Button for Creating Club */}
-            {user && (user.role === 'Club Admin' || user.role === 'Administrator') && (
+            {/* Floating Action Button for Creating Club (Administrators only) */}
+            {user && user.role === 'Administrator' && (
                 <Fab
                     color="primary"
                     aria-label="create club"

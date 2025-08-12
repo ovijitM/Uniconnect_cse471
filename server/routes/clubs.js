@@ -52,7 +52,26 @@ router.get('/', async (req, res) => {
         console.error('Get clubs error:', error);
         res.status(500).json({ message: 'Server error' });
     }
-});// @route   GET /api/clubs/:id
+});
+
+// @route   GET /api/clubs/managed
+// @desc    Get clubs managed by the current user (president)
+// @access  Private
+router.get('/managed', verifyToken, async (req, res) => {
+    try {
+        const clubs = await Club.find({ president: req.user._id })
+            .populate('members.user', 'name email')
+            .populate('university', 'name code location')
+            .sort({ createdAt: -1 });
+
+        res.json({ clubs });
+    } catch (error) {
+        console.error('Get managed clubs error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   GET /api/clubs/:id
 // @desc    Get club by ID
 // @access  Public
 router.get('/:id', async (req, res) => {
@@ -73,10 +92,38 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// @route   GET /api/clubs/:id/members
+// @desc    Get club members
+// @access  Private
+router.get('/:id/members', verifyToken, async (req, res) => {
+    try {
+        const club = await Club.findById(req.params.id)
+            .populate('members.user', 'name email profilePicture major year university')
+            .populate('members.user.university', 'name code');
+
+        if (!club) {
+            return res.status(404).json({ message: 'Club not found' });
+        }
+
+        // Check if user has permission to view members
+        const isPresident = club.president.toString() === req.user._id.toString();
+        const isMember = club.members.some(member => member.user._id.toString() === req.user._id.toString());
+
+        if (!isPresident && !isMember && req.user.role !== 'Administrator') {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        res.json({ members: club.members });
+    } catch (error) {
+        console.error('Get club members error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   POST /api/clubs
-// @desc    Create a new club
-// @access  Private (Club Admin or Administrator only)
-router.post('/', verifyToken, requireRole('Club Admin', 'Administrator'), async (req, res) => {
+// @desc    Create a new club (Administrators only - Club Admins must use club requests)
+// @access  Private (Administrator only)
+router.post('/', verifyToken, requireRole('Administrator'), async (req, res) => {
     try {
         const {
             name,
@@ -231,9 +278,9 @@ router.post('/:id/leave', verifyToken, async (req, res) => {
 });
 
 // @route   DELETE /api/clubs/:id
-// @desc    Delete a club (Admin only)
-// @access  Private (Administrator only)
-router.delete('/:id', verifyToken, requireRole('Administrator'), async (req, res) => {
+// @desc    Delete a club (Administrator or Club President)
+// @access  Private (Administrator or Club President)
+router.delete('/:id', verifyToken, async (req, res) => {
     try {
         const club = await Club.findById(req.params.id);
 
@@ -241,28 +288,21 @@ router.delete('/:id', verifyToken, requireRole('Administrator'), async (req, res
             return res.status(404).json({ message: 'Club not found' });
         }
 
+        // Check if user is Administrator or the president of this club
+        const isAdmin = req.user.role === 'Administrator';
+        const isPresident = club.president.toString() === req.user._id.toString();
+
+        if (!isAdmin && !isPresident) {
+            return res.status(403).json({
+                message: 'Access denied. Only administrators or club presidents can delete clubs.'
+            });
+        }
+
         await Club.findByIdAndDelete(req.params.id);
 
         res.json({ message: 'Club deleted successfully' });
     } catch (error) {
         console.error('Delete club error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// @route   GET /api/clubs/managed
-// @desc    Get clubs managed by the current user (president)
-// @access  Private
-router.get('/managed', verifyToken, async (req, res) => {
-    try {
-        const clubs = await Club.find({ president: req.user.id })
-            .populate('members.user', 'name email')
-            .populate('university', 'name code location')
-            .sort({ createdAt: -1 });
-
-        res.json({ clubs });
-    } catch (error) {
-        console.error('Get managed clubs error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -279,7 +319,7 @@ router.put('/:id', verifyToken, async (req, res) => {
         }
 
         // Check if user is the president or admin
-        if (club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+        if (club.president.toString() !== req.user._id.toString() && req.user.role !== 'Administrator') {
             return res.status(403).json({ message: 'Not authorized to update this club' });
         }
 
@@ -326,7 +366,7 @@ router.post('/:id/members', verifyToken, async (req, res) => {
         }
 
         // Check if user is the president or admin
-        if (club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+        if (club.president.toString() !== req.user._id.toString() && req.user.role !== 'Administrator') {
             return res.status(403).json({ message: 'Not authorized to add members to this club' });
         }
 
@@ -378,7 +418,7 @@ router.delete('/:id/members/:userId', verifyToken, async (req, res) => {
         }
 
         // Check if user is the president or admin
-        if (club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+        if (club.president.toString() !== req.user._id.toString() && req.user.role !== 'Administrator') {
             return res.status(403).json({ message: 'Not authorized to remove members from this club' });
         }
 
@@ -424,7 +464,7 @@ router.put('/:id/members/:userId/role', verifyToken, async (req, res) => {
         }
 
         // Check if user is the president or admin
-        if (club.president.toString() !== req.user.id && req.user.role !== 'Administrator') {
+        if (club.president.toString() !== req.user._id.toString() && req.user.role !== 'Administrator') {
             return res.status(403).json({ message: 'Not authorized to update member roles in this club' });
         }
 
