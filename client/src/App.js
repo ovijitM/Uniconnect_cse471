@@ -7,12 +7,12 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Clubs from './pages/Clubs';
 import Events from './pages/Events';
-import ClubAdminDashboard from './components/ClubAdminDashboard';
-import AdminDashboard from './components/AdminDashboard';
+import UnifiedDashboard from './components/AdminDashboard'; // Now handles all roles
+import ClubProfile from './pages/ClubProfile';
+import EventProfile from './pages/EventProfile';
 import './App.css';
 
 const theme = createTheme({
@@ -49,7 +49,7 @@ function App() {
                   path="/dashboard"
                   element={
                     <ProtectedRoute>
-                      <Dashboard />
+                      <UnifiedDashboard />
                     </ProtectedRoute>
                   }
                 />
@@ -70,26 +70,26 @@ function App() {
                   }
                 />
                 <Route
+                  path="/clubs/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ClubProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/:id"
+                  element={
+                    <ProtectedRoute>
+                      <EventProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/profile"
                   element={
                     <ProtectedRoute>
                       <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/club-admin-dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <ClubAdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin-dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <AdminDashboard />
                     </ProtectedRoute>
                   }
                 />

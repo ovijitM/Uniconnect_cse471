@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Container,
     Typography,
@@ -33,6 +34,7 @@ import EmailIcon from '@mui/icons-material/Email';
 
 const Clubs = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [clubs, setClubs] = useState([]);
     const [universities, setUniversities] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -127,6 +129,10 @@ const Clubs = () => {
         return club.members?.some(member => member.user._id === user?._id);
     };
 
+    const handleClubClick = (clubId) => {
+        navigate(`/clubs/${clubId}`);
+    };
+
     return (
         <Container maxWidth="lg" sx={{ py: 4, mt: 8 }}>
             {/* Header Section */}
@@ -208,238 +214,164 @@ const Clubs = () => {
                             </Grid>
                         ) : (
                             clubs.map((club) => (
-                                <Grid item xs={12} sm={6} md={4} key={club._id}>
+                                <Grid item xs={12} sm={6} md={3} lg={2} key={club._id}>
                                     <Card
                                         sx={{
-                                            height: '100%',
+                                            height: 280,
                                             display: 'flex',
                                             flexDirection: 'column',
                                             position: 'relative',
-                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            transition: 'all 0.3s ease',
                                             cursor: 'pointer',
-                                            borderRadius: 3,
+                                            borderRadius: 2,
                                             overflow: 'hidden',
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                                             '&:hover': {
-                                                transform: 'translateY(-8px) scale(1.02)',
-                                                boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
-                                                '& .club-avatar': {
-                                                    transform: 'scale(1.1)',
-                                                    boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
-                                                },
-                                                '& .club-join-btn': {
-                                                    transform: 'scale(1.05)'
-                                                }
+                                                transform: 'translateY(-4px)',
+                                                boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
                                             }
                                         }}
+                                        onClick={() => handleClubClick(club._id)}
                                     >
-                                        {/* Header Section with Gradient Background */}
+                                        {/* Compact Header */}
                                         <Box
                                             sx={{
                                                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                                p: 3,
-                                                pb: 4,
-                                                position: 'relative'
+                                                p: 1.5,
+                                                position: 'relative',
+                                                height: 90
                                             }}
                                         >
-                                            <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 1 }}>
+                                            <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
                                                 <Chip
                                                     label={club.category || 'General'}
                                                     size="small"
                                                     sx={{
                                                         bgcolor: 'rgba(255,255,255,0.2)',
                                                         color: 'white',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: 600,
-                                                        backdropFilter: 'blur(10px)'
+                                                        fontSize: '0.65rem',
+                                                        height: 20
                                                     }}
                                                 />
                                             </Box>
 
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                                 <Avatar
-                                                    className="club-avatar"
                                                     sx={{
-                                                        width: 80,
-                                                        height: 80,
-                                                        mb: 2,
+                                                        width: 36,
+                                                        height: 36,
                                                         bgcolor: 'rgba(255,255,255,0.95)',
                                                         color: '#667eea',
-                                                        transition: 'all 0.3s ease',
-                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                                                     }}
                                                 >
-                                                    <GroupsIcon sx={{ fontSize: 40 }} />
+                                                    <GroupsIcon sx={{ fontSize: 18 }} />
                                                 </Avatar>
-
-                                                <Typography
-                                                    variant="h6"
-                                                    sx={{
-                                                        color: 'white',
-                                                        fontWeight: 700,
-                                                        fontSize: '1.25rem',
-                                                        textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                        lineHeight: 1.2
-                                                    }}
-                                                >
-                                                    {club.name}
-                                                </Typography>
-
-                                                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Box
+                                                <Box sx={{ flex: 1 }}>
+                                                    <Typography
+                                                        variant="h6"
                                                         sx={{
-                                                            width: 8,
-                                                            height: 8,
-                                                            borderRadius: '50%',
-                                                            bgcolor: club.isActive ? '#4caf50' : '#f44336'
+                                                            color: 'white',
+                                                            fontWeight: 600,
+                                                            fontSize: '0.95rem',
+                                                            lineHeight: 1.2,
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap'
                                                         }}
-                                                    />
+                                                    >
+                                                        {club.name}
+                                                    </Typography>
                                                     <Typography
                                                         variant="caption"
                                                         sx={{
-                                                            color: 'rgba(255,255,255,0.9)',
-                                                            fontWeight: 500,
-                                                            textTransform: 'uppercase',
-                                                            letterSpacing: '0.5px'
+                                                            color: 'rgba(255,255,255,0.8)',
+                                                            fontSize: '0.7rem'
                                                         }}
                                                     >
-                                                        {club.isActive ? 'Active' : 'Inactive'}
+                                                        {club.members?.length || 0} members
                                                     </Typography>
                                                 </Box>
                                             </Box>
                                         </Box>
 
-                                        <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                                        <CardContent sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
                                             <Typography
                                                 variant="body2"
+                                                color="text.secondary"
                                                 sx={{
-                                                    color: 'text.secondary',
-                                                    mb: 3,
-                                                    lineHeight: 1.6,
-                                                    minHeight: '48px',
+                                                    mb: 2,
+                                                    fontSize: '0.8rem',
+                                                    lineHeight: 1.3,
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
                                                     display: '-webkit-box',
-                                                    WebkitLineClamp: 2,
+                                                    WebkitLineClamp: 3,
                                                     WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden'
+                                                    flex: 1
                                                 }}
                                             >
-                                                {club.description || 'Join this amazing club and connect with like-minded students!'}
+                                                {club.description?.length > 80
+                                                    ? `${club.description.substring(0, 80)}...`
+                                                    : club.description || 'Join this amazing club!'}
                                             </Typography>
 
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <Box
-                                                        sx={{
-                                                            width: 36,
-                                                            height: 36,
-                                                            borderRadius: 2,
-                                                            bgcolor: 'rgba(102, 126, 234, 0.1)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            mr: 2
-                                                        }}
-                                                    >
-                                                        <PersonIcon sx={{ fontSize: 18, color: '#667eea' }} />
-                                                    </Box>
-                                                    <Box>
-                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
-                                                            President
-                                                        </Typography>
-                                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                            {club.president?.name || 'TBA'}
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 'auto' }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        <PersonIcon sx={{ fontSize: 12, color: '#667eea' }} />
+                                                        <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                                            {club.president?.name?.substring(0, 8) || 'TBA'}
+                                                            {club.president?.name?.length > 8 ? '...' : ''}
                                                         </Typography>
                                                     </Box>
+                                                    {club.membershipFee > 0 && (
+                                                        <Typography variant="caption" sx={{ color: '#ff9800', fontWeight: 600, fontSize: '0.7rem' }}>
+                                                            ${club.membershipFee}
+                                                        </Typography>
+                                                    )}
                                                 </Box>
 
-                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <Box
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                    <EmailIcon sx={{ fontSize: 12, color: '#3f51b5' }} />
+                                                    <Typography
+                                                        variant="caption"
                                                         sx={{
-                                                            width: 36,
-                                                            height: 36,
-                                                            borderRadius: 2,
-                                                            bgcolor: 'rgba(76, 175, 80, 0.1)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            mr: 2
+                                                            fontSize: '0.7rem',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                            flex: 1
                                                         }}
                                                     >
-                                                        <GroupsIcon sx={{ fontSize: 18, color: '#4caf50' }} />
-                                                    </Box>
-                                                    <Box sx={{ flex: 1 }}>
-                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
-                                                            Members
-                                                        </Typography>
-                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                                {club.members?.length || 0} students
-                                                            </Typography>
-                                                            {club.membershipFee > 0 && (
-                                                                <Typography variant="body2" sx={{ color: '#ff9800', fontWeight: 600 }}>
-                                                                    ${club.membershipFee}
-                                                                </Typography>
-                                                            )}
-                                                        </Box>
-                                                    </Box>
-                                                </Box>
-
-                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <Box
-                                                        sx={{
-                                                            width: 36,
-                                                            height: 36,
-                                                            borderRadius: 2,
-                                                            bgcolor: 'rgba(63, 81, 181, 0.1)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            mr: 2
-                                                        }}
-                                                    >
-                                                        <EmailIcon sx={{ fontSize: 18, color: '#3f51b5' }} />
-                                                    </Box>
-                                                    <Box sx={{ flex: 1 }}>
-                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
-                                                            Contact
-                                                        </Typography>
-                                                        <Typography
-                                                            variant="body2"
-                                                            sx={{
-                                                                fontWeight: 600,
-                                                                overflow: 'hidden',
-                                                                textOverflow: 'ellipsis',
-                                                                whiteSpace: 'nowrap'
-                                                            }}
-                                                        >
-                                                            {club.contactEmail || 'Not provided'}
-                                                        </Typography>
-                                                    </Box>
+                                                        {club.contactEmail || 'Not provided'}
+                                                    </Typography>
                                                 </Box>
                                             </Box>
                                         </CardContent>
 
-                                        <CardActions sx={{ p: 3, pt: 0 }}>
+                                        <CardActions sx={{ p: 1.5, pt: 0 }}>
                                             {!isUserMember(club) ? (
                                                 <Button
                                                     className="club-join-btn"
                                                     fullWidth
                                                     variant="contained"
-                                                    size="large"
-                                                    startIcon={<PersonAddIcon />}
-                                                    onClick={() => handleJoinClub(club._id)}
+                                                    size="small"
+                                                    startIcon={<PersonAddIcon sx={{ fontSize: 16 }} />}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleJoinClub(club._id);
+                                                    }}
                                                     sx={{
                                                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                                        borderRadius: 2,
-                                                        py: 1.5,
+                                                        borderRadius: 1.5,
+                                                        py: 0.75,
                                                         fontWeight: 600,
-                                                        fontSize: '0.95rem',
+                                                        fontSize: '0.8rem',
                                                         textTransform: 'none',
-                                                        transition: 'all 0.3s ease',
-                                                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                                                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
                                                         '&:hover': {
                                                             background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-                                                            boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)'
+                                                            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
                                                         }
                                                     }}
                                                 >
@@ -449,13 +381,13 @@ const Clubs = () => {
                                                 <Button
                                                     fullWidth
                                                     variant="outlined"
-                                                    size="large"
+                                                    size="small"
                                                     disabled
                                                     sx={{
-                                                        borderRadius: 2,
-                                                        py: 1.5,
+                                                        borderRadius: 1.5,
+                                                        py: 0.75,
                                                         fontWeight: 600,
-                                                        fontSize: '0.95rem',
+                                                        fontSize: '0.8rem',
                                                         textTransform: 'none',
                                                         borderColor: '#4caf50',
                                                         color: '#4caf50',
@@ -466,7 +398,7 @@ const Clubs = () => {
                                                         }
                                                     }}
                                                 >
-                                                    ✓ Already Joined
+                                                    ✓ Joined
                                                 </Button>
                                             )}
                                         </CardActions>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Button, Box, Grid, Card, CardContent, Avatar, Chip } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import SchoolIcon from '@mui/icons-material/School';
@@ -11,6 +11,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
 const Home = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [featuredClubs, setFeaturedClubs] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
 
@@ -21,8 +22,8 @@ const Home = () => {
   const fetchFeaturedContent = async () => {
     try {
       const [clubsRes, eventsRes] = await Promise.all([
-        axios.get('/api/clubs?limit=3'),
-        axios.get('/api/events?limit=3')
+        axios.get('/api/clubs?limit=6'),
+        axios.get('/api/events?limit=6')
       ]);
 
       setFeaturedClubs(clubsRes.data.clubs || []);
@@ -40,6 +41,14 @@ const Home = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleClubClick = (clubId) => {
+    navigate(`/clubs/${clubId}`);
+  };
+
+  const handleEventClick = (eventId) => {
+    navigate(`/events/${eventId}`);
   };
 
   const features = [
@@ -164,99 +173,153 @@ const Home = () => {
           </Button>
         </Box>
 
-        <Grid container spacing={3}>
+        {/* Horizontal Scrollable Cards */}
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            overflowX: 'auto',
+            pb: 2,
+            '&::-webkit-scrollbar': {
+              height: 8,
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+              borderRadius: 10,
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: 10,
+              '&:hover': {
+                background: '#555',
+              },
+            },
+          }}
+        >
           {featuredClubs.length === 0 ? (
-            <Grid item xs={12}>
-              <Typography variant="body1" color="text.secondary" textAlign="center">
+            <Box sx={{ width: '100%', textAlign: 'center', py: 4 }}>
+              <Typography variant="body1" color="text.secondary">
                 No clubs available yet. Be the first to create one!
               </Typography>
-            </Grid>
+            </Box>
           ) : (
             featuredClubs.map((club) => (
-              <Grid item xs={12} sm={6} md={4} key={club._id}>
-                <Card
+              <Card
+                key={club._id}
+                sx={{
+                  minWidth: 280,
+                  maxWidth: 280,
+                  height: 200,
+                  borderRadius: 2,
+                  flexShrink: 0,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
+                  }
+                }}
+                onClick={() => handleClubClick(club._id)}
+              >
+                {/* Header */}
+                <Box
                   sx={{
-                    height: '100%',
-                    borderRadius: 3,
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 24px rgba(0,0,0,0.15)'
-                    }
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    p: 1.5,
+                    position: 'relative',
+                    height: 80
                   }}
                 >
-                  <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                      <Avatar
-                        sx={{
-                          width: 56,
-                          height: 56,
-                          mr: 2,
-                          bgcolor: 'primary.main',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                        }}
-                      >
-                        <GroupsIcon sx={{ fontSize: 28 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" fontWeight="700" gutterBottom>
-                          {club.name}
-                        </Typography>
-                        <Chip
-                          label={club.category}
-                          size="small"
-                          color="primary"
-                          variant="filled"
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: '0.75rem'
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
+                  <Box sx={{ position: 'absolute', top: 6, right: 6 }}>
+                    <Chip
+                      label={club.category || 'General'}
+                      size="small"
                       sx={{
-                        mb: 2,
-                        lineHeight: 1.6,
-                        minHeight: '44px',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        fontSize: '0.6rem',
+                        height: 18
+                      }}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: 'rgba(255,255,255,0.95)',
+                        color: '#667eea',
                       }}
                     >
-                      {club.description?.length > 100
-                        ? `${club.description.substring(0, 100)}...`
-                        : club.description || 'Join this amazing club!'}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Box
+                      <GroupsIcon sx={{ fontSize: 16 }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="h6"
                         sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 2,
-                          bgcolor: 'rgba(76, 175, 80, 0.1)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mr: 1.5
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '0.9rem',
+                          lineHeight: 1.2,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}
                       >
-                        <GroupsIcon sx={{ fontSize: 16, color: '#4caf50' }} />
-                      </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#4caf50' }}>
+                        {club.name}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: 'rgba(255,255,255,0.8)',
+                          fontSize: '0.65rem'
+                        }}
+                      >
                         {club.members?.length || 0} members
                       </Typography>
                     </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+                  </Box>
+                </Box>
+
+                <CardContent sx={{ p: 1.5, height: 'calc(100% - 80px)', display: 'flex', flexDirection: 'column' }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{
+                      mb: 1.5,
+                      fontSize: '0.75rem',
+                      lineHeight: 1.3,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      flex: 1
+                    }}
+                  >
+                    {club.description?.length > 70
+                      ? `${club.description.substring(0, 70)}...`
+                      : club.description || 'Join this amazing club!'}
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.7rem' }}>
+                      {club.president?.name?.substring(0, 10) || 'TBA'}
+                      {club.president?.name?.length > 10 ? '...' : ''}
+                    </Typography>
+                    {club.membershipFee > 0 && (
+                      <Typography variant="body2" sx={{ color: '#ff9800', fontWeight: 600, fontSize: '0.7rem' }}>
+                        ${club.membershipFee}
+                      </Typography>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
             ))
           )}
-        </Grid>
+        </Box>
       </Box>
 
       {/* Upcoming Events Section */}
@@ -276,102 +339,151 @@ const Home = () => {
         </Box>
 
         <Box sx={{ px: 3 }}>
-          <Grid container spacing={3}>
+          {/* Horizontal Scrollable Cards */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 2,
+              overflowX: 'auto',
+              pb: 2,
+              '&::-webkit-scrollbar': {
+                height: 8,
+              },
+              '&::-webkit-scrollbar-track': {
+                background: '#f1f1f1',
+                borderRadius: 10,
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: '#888',
+                borderRadius: 10,
+                '&:hover': {
+                  background: '#555',
+                },
+              },
+            }}
+          >
             {upcomingEvents.length === 0 ? (
-              <Grid item xs={12}>
-                <Typography variant="body1" color="text.secondary" textAlign="center">
+              <Box sx={{ width: '100%', textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" color="text.secondary">
                   No upcoming events yet. Check back soon!
                 </Typography>
-              </Grid>
+              </Box>
             ) : (
               upcomingEvents.map((event) => (
-                <Grid item xs={12} sm={6} md={4} key={event._id}>
-                  <Card
+                <Card
+                  key={event._id}
+                  sx={{
+                    minWidth: 280,
+                    maxWidth: 280,
+                    height: 200,
+                    borderRadius: 2,
+                    flexShrink: 0,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
+                    }
+                  }}
+                  onClick={() => handleEventClick(event._id)}
+                >
+                  {/* Header */}
+                  <Box
                     sx={{
-                      height: '100%',
-                      borderRadius: 3,
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      '&:hover': {
-                        transform: 'translateY(-8px)',
-                        boxShadow: '0 12px 24px rgba(0,0,0,0.15)'
-                      }
+                      background: 'linear-gradient(135deg, #ff7043 0%, #f57c00 100%)',
+                      p: 1.5,
+                      position: 'relative',
+                      height: 80
                     }}
                   >
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                        <Avatar
-                          sx={{
-                            width: 56,
-                            height: 56,
-                            mr: 2,
-                            bgcolor: 'secondary.main',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                          }}
-                        >
-                          <EventIcon sx={{ fontSize: 28 }} />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="h6" fontWeight="700" gutterBottom>
-                            {event.title}
-                          </Typography>
-                          <Chip
-                            label={event.eventType || event.type || 'Event'}
-                            size="small"
-                            color="secondary"
-                            variant="filled"
-                            sx={{
-                              fontWeight: 600,
-                              fontSize: '0.75rem'
-                            }}
-                          />
-                        </Box>
-                      </Box>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
+                    <Box sx={{ position: 'absolute', top: 6, right: 6 }}>
+                      <Chip
+                        label={event.eventType || event.type || 'Event'}
+                        size="small"
                         sx={{
-                          mb: 3,
-                          lineHeight: 1.6,
-                          minHeight: '44px',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
+                          bgcolor: 'rgba(255,255,255,0.2)',
+                          color: 'white',
+                          fontSize: '0.6rem',
+                          height: 18
+                        }}
+                      />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Avatar
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          bgcolor: 'rgba(255,255,255,0.95)',
+                          color: '#ff7043',
                         }}
                       >
-                        {event.description?.length > 100
-                          ? `${event.description.substring(0, 100)}...`
-                          : event.description || 'Join this exciting event!'}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <Box
+                        <EventIcon sx={{ fontSize: 16 }} />
+                      </Avatar>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="h6"
                           sx={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 2,
-                            bgcolor: 'rgba(255, 152, 0, 0.1)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            mr: 1.5
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            lineHeight: 1.2,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
                           }}
                         >
-                          <CalendarTodayIcon sx={{ fontSize: 16, color: '#ff9800' }} />
-                        </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#ff9800' }}>
+                          {event.title}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'rgba(255,255,255,0.8)',
+                            fontSize: '0.65rem'
+                          }}
+                        >
                           {formatDate(event.startDate)}
                         </Typography>
                       </Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                        by {event.organizer?.name || event.club?.name || 'Unknown'}
+                    </Box>
+                  </Box>
+
+                  <CardContent sx={{ p: 1.5, height: 'calc(100% - 80px)', display: 'flex', flexDirection: 'column' }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        mb: 1.5,
+                        fontSize: '0.75rem',
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        flex: 1
+                      }}
+                    >
+                      {event.description?.length > 70
+                        ? `${event.description.substring(0, 70)}...`
+                        : event.description || 'Join this exciting event!'}
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.7rem' }}>
+                        {event.organizer?.name?.substring(0, 10) || event.club?.name?.substring(0, 10) || 'Unknown'}
+                        {(event.organizer?.name?.length > 10 || event.club?.name?.length > 10) ? '...' : ''}
                       </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                      <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600, fontSize: '0.7rem' }}>
+                        Free
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
               ))
             )}
-          </Grid>
+          </Box>
         </Box>
       </Box>
 

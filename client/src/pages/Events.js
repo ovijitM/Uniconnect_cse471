@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Container,
     Typography,
@@ -41,6 +42,7 @@ import GroupsIcon from '@mui/icons-material/Groups';
 
 const Events = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [events, setEvents] = useState([]);
     const [clubs, setClubs] = useState([]);
     const [universities, setUniversities] = useState([]);
@@ -200,6 +202,10 @@ const Events = () => {
         return event.attendees?.some(attendee => attendee._id === user?._id);
     };
 
+    const handleEventClick = (eventId) => {
+        navigate(`/events/${eventId}`);
+    };
+
     const userClubs = clubs.filter(club =>
         club.members?.some(member => member.user._id === user?._id)
     );
@@ -314,103 +320,78 @@ const Events = () => {
                                 </Grid>
                             ) : (
                                 events.map((event) => (
-                                    <Grid item xs={12} sm={6} md={4} key={event._id}>
+                                    <Grid item xs={12} sm={6} md={3} lg={2} key={event._id}>
                                         <Card
                                             sx={{
-                                                height: '100%',
+                                                height: 280,
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 position: 'relative',
-                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                transition: 'all 0.3s ease',
                                                 cursor: 'pointer',
-                                                borderRadius: 3,
+                                                borderRadius: 2,
                                                 overflow: 'hidden',
-                                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                                                 '&:hover': {
-                                                    transform: 'translateY(-8px) scale(1.02)',
-                                                    boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
-                                                    '& .event-avatar': {
-                                                        transform: 'scale(1.1)',
-                                                        boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
-                                                    },
-                                                    '& .event-register-btn': {
-                                                        transform: 'scale(1.05)'
-                                                    }
+                                                    transform: 'translateY(-4px)',
+                                                    boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
                                                 }
                                             }}
+                                            onClick={() => handleEventClick(event._id)}
                                         >
-                                            {/* Header Section with Gradient Background */}
+                                            {/* Compact Header */}
                                             <Box
                                                 sx={{
-                                                    background: 'linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%)',
-                                                    p: 3,
-                                                    pb: 4,
-                                                    position: 'relative'
+                                                    background: 'linear-gradient(135deg, #ff7043 0%, #f57c00 100%)',
+                                                    p: 1.5,
+                                                    position: 'relative',
+                                                    height: 90
                                                 }}
                                             >
-                                                <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
                                                     <Chip
                                                         label={event.eventType || event.type || 'Event'}
                                                         size="small"
                                                         sx={{
                                                             bgcolor: 'rgba(255,255,255,0.2)',
                                                             color: 'white',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 600,
-                                                            backdropFilter: 'blur(10px)'
-                                                        }}
-                                                    />
-                                                    <Chip
-                                                        label={event.isPublic ? 'Public' : 'Private'}
-                                                        size="small"
-                                                        sx={{
-                                                            bgcolor: event.isPublic ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 193, 7, 0.3)',
-                                                            color: 'white',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 600,
-                                                            backdropFilter: 'blur(10px)'
+                                                            fontSize: '0.65rem',
+                                                            height: 20
                                                         }}
                                                     />
                                                 </Box>
 
-                                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                                     <Avatar
-                                                        className="event-avatar"
                                                         sx={{
-                                                            width: 80,
-                                                            height: 80,
-                                                            mb: 2,
+                                                            width: 36,
+                                                            height: 36,
                                                             bgcolor: 'rgba(255,255,255,0.95)',
-                                                            color: '#ff6b6b',
-                                                            transition: 'all 0.3s ease',
-                                                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                                            color: '#ff7043',
                                                         }}
                                                     >
-                                                        <EventIcon sx={{ fontSize: 40 }} />
+                                                        <EventIcon sx={{ fontSize: 18 }} />
                                                     </Avatar>
-
-                                                    <Typography
-                                                        variant="h6"
-                                                        sx={{
-                                                            color: 'white',
-                                                            fontWeight: 700,
-                                                            fontSize: '1.1rem',
-                                                            textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                            lineHeight: 1.3,
-                                                            textAlign: 'center',
-                                                            maxWidth: '100%'
-                                                        }}
-                                                    >
-                                                        {event.title}
-                                                    </Typography>
-
-                                                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        <CalendarTodayIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.9)' }} />
+                                                    <Box sx={{ flex: 1 }}>
+                                                        <Typography
+                                                            variant="h6"
+                                                            sx={{
+                                                                color: 'white',
+                                                                fontWeight: 600,
+                                                                fontSize: '0.95rem',
+                                                                lineHeight: 1.2,
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap'
+                                                            }}
+                                                        >
+                                                            {event.title}
+                                                        </Typography>
                                                         <Typography
                                                             variant="caption"
                                                             sx={{
-                                                                color: 'rgba(255,255,255,0.9)',
-                                                                fontWeight: 500
+                                                                color: 'rgba(255,255,255,0.8)',
+                                                                fontSize: '0.7rem'
                                                             }}
                                                         >
                                                             {formatDate(event.startDate)}
@@ -419,122 +400,61 @@ const Events = () => {
                                                 </Box>
                                             </Box>
 
-                                            <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                                            <CardContent sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
                                                 <Typography
                                                     variant="body2"
+                                                    color="text.secondary"
                                                     sx={{
-                                                        color: 'text.secondary',
-                                                        mb: 3,
-                                                        lineHeight: 1.6,
-                                                        minHeight: '48px',
+                                                        mb: 2,
+                                                        fontSize: '0.8rem',
+                                                        lineHeight: 1.3,
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
                                                         display: '-webkit-box',
-                                                        WebkitLineClamp: 2,
+                                                        WebkitLineClamp: 3,
                                                         WebkitBoxOrient: 'vertical',
-                                                        overflow: 'hidden'
+                                                        flex: 1
                                                     }}
                                                 >
-                                                    {event.description?.length > 100
-                                                        ? `${event.description.substring(0, 100)}...`
+                                                    {event.description?.length > 80
+                                                        ? `${event.description.substring(0, 80)}...`
                                                         : event.description || 'Join this exciting event!'}
                                                 </Typography>
 
-                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <Box
-                                                            sx={{
-                                                                width: 36,
-                                                                height: 36,
-                                                                borderRadius: 2,
-                                                                bgcolor: 'rgba(255, 107, 107, 0.1)',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                mr: 2
-                                                            }}
-                                                        >
-                                                            <LocationOnIcon sx={{ fontSize: 18, color: '#ff6b6b' }} />
-                                                        </Box>
-                                                        <Box>
-                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
-                                                                Venue
-                                                            </Typography>
-                                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                                {typeof event.venue === 'string' ? event.venue : (event.venue?.name || 'TBD')}
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 'auto' }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                            <LocationOnIcon sx={{ fontSize: 12, color: '#ff6b6b' }} />
+                                                            <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                                                {typeof event.venue === 'string'
+                                                                    ? (event.venue.length > 10 ? `${event.venue.substring(0, 10)}...` : event.venue)
+                                                                    : (event.venue?.name?.length > 10 ? `${event.venue.name.substring(0, 10)}...` : event.venue?.name || 'TBD')}
                                                             </Typography>
                                                         </Box>
-                                                    </Box>
-
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <Box
-                                                            sx={{
-                                                                width: 36,
-                                                                height: 36,
-                                                                borderRadius: 2,
-                                                                bgcolor: 'rgba(76, 175, 80, 0.1)',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                mr: 2
-                                                            }}
-                                                        >
-                                                            <PersonIcon sx={{ fontSize: 18, color: '#4caf50' }} />
-                                                        </Box>
-                                                        <Box>
-                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
-                                                                Organizer
-                                                            </Typography>
-                                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                                {event.organizer?.name || event.club?.name || 'Unknown'}
-                                                            </Typography>
-                                                        </Box>
-                                                    </Box>
-
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <Box
-                                                            sx={{
-                                                                width: 36,
-                                                                height: 36,
-                                                                borderRadius: 2,
-                                                                bgcolor: 'rgba(63, 81, 181, 0.1)',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                mr: 2
-                                                            }}
-                                                        >
-                                                            <SchoolIcon sx={{ fontSize: 18, color: '#3f51b5' }} />
-                                                        </Box>
-                                                        <Box sx={{ flex: 1 }}>
-                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
-                                                                University
-                                                            </Typography>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{
-                                                                    fontWeight: 600,
-                                                                    overflow: 'hidden',
-                                                                    textOverflow: 'ellipsis',
-                                                                    whiteSpace: 'nowrap'
-                                                                }}
-                                                            >
-                                                                {event.university?.name || 'Unknown University'}
-                                                            </Typography>
-                                                        </Box>
-                                                    </Box>
-
-                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                            <GroupsIcon sx={{ fontSize: 16, color: '#ff9800' }} />
-                                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#ff9800' }}>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                            <GroupsIcon sx={{ fontSize: 12, color: '#ff9800' }} />
+                                                            <Typography variant="caption" sx={{ color: '#ff9800', fontWeight: 600, fontSize: '0.7rem' }}>
                                                                 {event.attendees?.length || 0}
                                                                 {event.maxAttendees && `/${event.maxAttendees}`}
                                                             </Typography>
                                                         </Box>
-                                                        {event.registrationFee > 0 && (
-                                                            <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>
-                                                                ${event.registrationFee}
-                                                            </Typography>
-                                                        )}
+                                                    </Box>
+
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        <PersonIcon sx={{ fontSize: 12, color: '#4caf50' }} />
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                                fontSize: '0.7rem',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                flex: 1
+                                                            }}
+                                                        >
+                                                            {event.organizer?.name?.substring(0, 12) || event.club?.name?.substring(0, 12) || 'Unknown'}
+                                                            {((event.organizer?.name?.length > 12) || (event.club?.name?.length > 12)) ? '...' : ''}
+                                                        </Typography>
                                                     </Box>
                                                 </Box>
                                             </CardContent>
@@ -547,7 +467,10 @@ const Events = () => {
                                                             fullWidth
                                                             variant="contained"
                                                             size="large"
-                                                            onClick={() => handleRegisterEvent(event._id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleRegisterEvent(event._id);
+                                                            }}
                                                             disabled={event.maxAttendees && event.attendees?.length >= event.maxAttendees}
                                                             sx={{
                                                                 background: event.maxAttendees && event.attendees?.length >= event.maxAttendees
