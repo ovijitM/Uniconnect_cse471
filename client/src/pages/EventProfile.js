@@ -39,6 +39,7 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import InfoIcon from '@mui/icons-material/Info';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import TeamRecruitmentSection from '../components/TeamRecruitmentSection';
 
 const EventProfile = () => {
     const { id } = useParams();
@@ -361,11 +362,14 @@ const EventProfile = () => {
                     onChange={(e, newValue) => setTabValue(newValue)}
                     indicatorColor="primary"
                     textColor="primary"
+                    variant="scrollable"
+                    scrollButtons="auto"
                 >
                     <Tab label="Details" />
                     <Tab label="Attendees" />
                     <Tab label="Organizer" />
                     <Tab label="Contact" />
+                    <Tab label="Team Recruitment" />
                 </Tabs>
             </Paper>
 
@@ -683,6 +687,11 @@ const EventProfile = () => {
                         </List>
                     </CardContent>
                 </Card>
+            )}
+
+            {/* Team Recruitment Tab */}
+            {tabValue === 4 && (
+                <TeamRecruitmentSection eventId={event._id} />
             )}
         </Container>
     );
