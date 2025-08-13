@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -38,7 +38,24 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import EventIcon from '@mui/icons-material/Event';
+import CampaignIcon from '@mui/icons-material/Campaign';
+import AddIcon from '@mui/icons-material/Add';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined';
+import CommentIcon from '@mui/icons-material/Comment';
+import SendIcon from '@mui/icons-material/Send';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import TextField from '@mui/material/TextField';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Collapse from '@mui/material/Collapse';
 
 const ClubProfile = () => {
     const { id } = useParams();
@@ -51,12 +68,21 @@ const ClubProfile = () => {
     const [tabValue, setTabValue] = useState(0);
     const [joinLoading, setJoinLoading] = useState(false);
 
-    useEffect(() => {
-        fetchClubData();
-        fetchClubEvents();
-    }, [id]);
+    // Announcement states
+    const [announcements, setAnnouncements] = useState([]);
+    const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+    const [announcementDialogOpen, setAnnouncementDialogOpen] = useState(false);
+    const [newAnnouncementData, setNewAnnouncementData] = useState({
+        title: '',
+        content: '',
+        type: 'General',
+        priority: 'Normal',
+        isPinned: false
+    });
+    const [commentDialogs, setCommentDialogs] = useState({});
+    const [newCommentContent, setNewCommentContent] = useState({});
 
-    const fetchClubData = async () => {
+    const fetchClubData = useCallback(async () => {
         try {
             const response = await axios.get(`/api/clubs/${id}`);
             setClub(response.data);
@@ -66,16 +92,16 @@ const ClubProfile = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
 
-    const fetchClubEvents = async () => {
+    const fetchClubEvents = useCallback(async () => {
         try {
             const response = await axios.get(`/api/events/club/${id}`);
             setClubEvents(response.data.events || []);
         } catch (error) {
             console.error('Error fetching club events:', error);
         }
-    };
+    }, [id]);
 
     const isUserMember = () => {
         return club?.members?.some(member => member.user._id === user?._id);
@@ -111,6 +137,133 @@ const ClubProfile = () => {
         navigate(`/events/${eventId}`);
     };
 
+    // Announcement functions
+    const fetchAnnouncements = useCallback(async () => {
+        setAnnouncementsLoading(true);
+        try {
+            const response = await axios.get(`/api/announcements/club/${id}`);
+            setAnnouncements(response.data.announcements || []);
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
+        } finally {
+            setAnnouncementsLoading(false);
+        }
+    }, [id]);
+
+    const canCreateAnnouncement = () => {
+        if (!user || !club) return false;
+
+        // System administrator can create announcements for any club
+        if (user.role === 'Administrator') {
+            return true;
+        }
+
+        // Club president (from club model) can create announcements
+        if (club.president && club.president._id === user._id) {
+            return true;
+        }
+
+        // Check if user is an officer or above in the club members
+        const userMembership = club.members?.find(member =>
+            member.user._id === user._id
+        );
+
+        if (userMembership && ['President', 'Vice President', 'Officer', 'Secretary'].includes(userMembership.role)) {
+            return true;
+        }
+
+        // Club Admin role can only create announcements if they are the president of this specific club
+        if (user.role === 'Club Admin' && club.president && club.president._id === user._id) {
+            return true;
+        }
+
+        return false;
+    };
+
+    const handleCreateAnnouncement = async () => {
+        if (!newAnnouncementData.title.trim() || !newAnnouncementData.content.trim()) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`/api/announcements/club/${id}`, newAnnouncementData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setAnnouncementDialogOpen(false);
+            setNewAnnouncementData({
+                title: '',
+                content: '',
+                type: 'General',
+                priority: 'Normal',
+                isPinned: false
+            });
+            fetchAnnouncements();
+        } catch (error) {
+            console.error('Error creating announcement:', error);
+            alert(error.response?.data?.message || 'Failed to create announcement');
+        }
+    };
+
+    const handleLikeAnnouncement = async (announcementId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`/api/announcements/${announcementId}/like`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Update the announcement in the list
+            setAnnouncements(prev => prev.map(announcement =>
+                announcement._id === announcementId
+                    ? {
+                        ...announcement,
+                        likeCount: response.data.likeCount,
+                        isLikedByUser: response.data.isLiked
+                    }
+                    : announcement
+            ));
+        } catch (error) {
+            console.error('Error liking announcement:', error);
+        }
+    };
+
+    const handleAddComment = async (announcementId) => {
+        const content = newCommentContent[announcementId];
+        if (!content?.trim()) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`/api/announcements/${announcementId}/comment`,
+                { content: content.trim() },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            // Update the announcement with the new comment
+            setAnnouncements(prev => prev.map(announcement =>
+                announcement._id === announcementId
+                    ? {
+                        ...announcement,
+                        comments: [...announcement.comments, response.data.comment]
+                    }
+                    : announcement
+            ));
+
+            setNewCommentContent(prev => ({ ...prev, [announcementId]: '' }));
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            alert(error.response?.data?.message || 'Failed to add comment');
+        }
+    };
+
+    const toggleCommentDialog = (announcementId) => {
+        setCommentDialogs(prev => ({
+            ...prev,
+            [announcementId]: !prev[announcementId]
+        }));
+    };
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -118,6 +271,14 @@ const ClubProfile = () => {
             day: 'numeric'
         });
     };
+
+    useEffect(() => {
+        fetchClubData();
+        fetchClubEvents();
+        if (tabValue === 4) { // Announcements tab
+            fetchAnnouncements();
+        }
+    }, [id, tabValue, fetchClubData, fetchClubEvents, fetchAnnouncements]);
 
     if (loading) {
         return (
@@ -244,6 +405,11 @@ const ClubProfile = () => {
                     <Tab label="Members" />
                     <Tab label="Events" />
                     <Tab label="Contact" />
+                    <Tab
+                        label="Announcements"
+                        icon={<CampaignIcon />}
+                        iconPosition="start"
+                    />
                 </Tabs>
             </Paper>
 
@@ -523,6 +689,267 @@ const ClubProfile = () => {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Announcements Tab */}
+            {tabValue === 4 && (
+                <Card>
+                    <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                            <Typography variant="h5" gutterBottom>
+                                📢 Announcements
+                            </Typography>
+                            {canCreateAnnouncement() && (
+                                <Button
+                                    variant="contained"
+                                    startIcon={<AddIcon />}
+                                    onClick={() => setAnnouncementDialogOpen(true)}
+                                >
+                                    Create Announcement
+                                </Button>
+                            )}
+                        </Box>
+
+                        {announcementsLoading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                                <CircularProgress />
+                            </Box>
+                        ) : announcements.length === 0 ? (
+                            <Alert severity="info">
+                                No announcements yet. {canCreateAnnouncement() && "Create the first announcement!"}
+                            </Alert>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {announcements.map((announcement) => (
+                                    <Card
+                                        key={announcement._id}
+                                        variant="outlined"
+                                        sx={{
+                                            borderLeft: announcement.isPinned ? '4px solid #1976d2' : 'none',
+                                            backgroundColor: announcement.isPinned ? 'rgba(25, 118, 210, 0.04)' : 'inherit'
+                                        }}
+                                    >
+                                        <CardContent>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                                                <Box sx={{ flex: 1 }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                                        {announcement.isPinned && <PushPinIcon sx={{ fontSize: 16, color: 'primary.main' }} />}
+                                                        <Typography variant="h6" component="h3">
+                                                            {announcement.title}
+                                                        </Typography>
+                                                        <Chip
+                                                            label={announcement.type}
+                                                            size="small"
+                                                            color={
+                                                                announcement.priority === 'Urgent' ? 'error' :
+                                                                    announcement.priority === 'High' ? 'warning' :
+                                                                        announcement.priority === 'Normal' ? 'primary' : 'default'
+                                                            }
+                                                        />
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                                        <Avatar sx={{ width: 24, height: 24 }}>
+                                                            {announcement.author?.name?.charAt(0)}
+                                                        </Avatar>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {announcement.author?.name} • {formatDate(announcement.createdAt)}
+                                                        </Typography>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                            <VisibilityIcon sx={{ fontSize: 16 }} />
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {announcement.views}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
+                                                </Box>
+                                            </Box>
+
+                                            <Typography variant="body1" paragraph sx={{ whiteSpace: 'pre-line' }}>
+                                                {announcement.content}
+                                            </Typography>
+
+                                            {announcement.tags && announcement.tags.length > 0 && (
+                                                <Box sx={{ mb: 2 }}>
+                                                    {announcement.tags.map((tag, index) => (
+                                                        <Chip
+                                                            key={index}
+                                                            label={`#${tag}`}
+                                                            size="small"
+                                                            variant="outlined"
+                                                            sx={{ mr: 0.5 }}
+                                                        />
+                                                    ))}
+                                                </Box>
+                                            )}
+                                        </CardContent>
+
+                                        <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                                <Button
+                                                    size="small"
+                                                    startIcon={announcement.isLikedByUser ? <ThumbUpIcon /> : <ThumbUpOutlinedIcon />}
+                                                    onClick={() => handleLikeAnnouncement(announcement._id)}
+                                                    disabled={!user}
+                                                    color={announcement.isLikedByUser ? 'primary' : 'inherit'}
+                                                >
+                                                    {announcement.likeCount || 0}
+                                                </Button>
+                                                <Button
+                                                    size="small"
+                                                    startIcon={<CommentIcon />}
+                                                    onClick={() => toggleCommentDialog(announcement._id)}
+                                                >
+                                                    {announcement.comments?.length || 0}
+                                                </Button>
+                                            </Box>
+                                        </CardActions>
+
+                                        {/* Comments Section */}
+                                        <Collapse in={commentDialogs[announcement._id]} timeout="auto" unmountOnExit>
+                                            <Box sx={{ px: 2, pb: 2 }}>
+                                                <Divider sx={{ mb: 2 }} />
+
+                                                {/* Add Comment */}
+                                                {user && (
+                                                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                                                        <TextField
+                                                            fullWidth
+                                                            size="small"
+                                                            placeholder="Add a comment..."
+                                                            value={newCommentContent[announcement._id] || ''}
+                                                            onChange={(e) => setNewCommentContent(prev => ({
+                                                                ...prev,
+                                                                [announcement._id]: e.target.value
+                                                            }))}
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                                    e.preventDefault();
+                                                                    handleAddComment(announcement._id);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <Button
+                                                            variant="contained"
+                                                            size="small"
+                                                            onClick={() => handleAddComment(announcement._id)}
+                                                            disabled={!newCommentContent[announcement._id]?.trim()}
+                                                        >
+                                                            <SendIcon fontSize="small" />
+                                                        </Button>
+                                                    </Box>
+                                                )}
+
+                                                {/* Comments List */}
+                                                {announcement.comments && announcement.comments.length > 0 && (
+                                                    <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+                                                        {announcement.comments.map((comment, index) => (
+                                                            <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                                                                <Avatar sx={{ width: 24, height: 24 }}>
+                                                                    {comment.author?.name?.charAt(0)}
+                                                                </Avatar>
+                                                                <Box sx={{ flex: 1 }}>
+                                                                    <Typography variant="caption" color="text.secondary">
+                                                                        {comment.author?.name} • {formatDate(comment.createdAt)}
+                                                                    </Typography>
+                                                                    <Typography variant="body2">
+                                                                        {comment.content}
+                                                                    </Typography>
+                                                                </Box>
+                                                            </Box>
+                                                        ))}
+                                                    </Box>
+                                                )}
+                                            </Box>
+                                        </Collapse>
+                                    </Card>
+                                ))}
+                            </Box>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Create Announcement Dialog */}
+            <Dialog open={announcementDialogOpen} onClose={() => setAnnouncementDialogOpen(false)} maxWidth="md" fullWidth>
+                <DialogTitle>Create New Announcement</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                        <TextField
+                            fullWidth
+                            label="Title"
+                            value={newAnnouncementData.title}
+                            onChange={(e) => setNewAnnouncementData(prev => ({ ...prev, title: e.target.value }))}
+                            required
+                        />
+
+                        <TextField
+                            fullWidth
+                            label="Content"
+                            multiline
+                            rows={4}
+                            value={newAnnouncementData.content}
+                            onChange={(e) => setNewAnnouncementData(prev => ({ ...prev, content: e.target.value }))}
+                            required
+                        />
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={4}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Type</InputLabel>
+                                    <Select
+                                        value={newAnnouncementData.type}
+                                        onChange={(e) => setNewAnnouncementData(prev => ({ ...prev, type: e.target.value }))}
+                                        label="Type"
+                                    >
+                                        <MenuItem value="General">General</MenuItem>
+                                        <MenuItem value="Event">Event</MenuItem>
+                                        <MenuItem value="Important">Important</MenuItem>
+                                        <MenuItem value="Urgent">Urgent</MenuItem>
+                                        <MenuItem value="Achievement">Achievement</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+
+                            <Grid item xs={12} sm={4}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Priority</InputLabel>
+                                    <Select
+                                        value={newAnnouncementData.priority}
+                                        onChange={(e) => setNewAnnouncementData(prev => ({ ...prev, priority: e.target.value }))}
+                                        label="Priority"
+                                    >
+                                        <MenuItem value="Low">Low</MenuItem>
+                                        <MenuItem value="Normal">Normal</MenuItem>
+                                        <MenuItem value="High">High</MenuItem>
+                                        <MenuItem value="Urgent">Urgent</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+
+                            <Grid item xs={12} sm={4}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                                    <Button
+                                        variant={newAnnouncementData.isPinned ? "contained" : "outlined"}
+                                        startIcon={<PushPinIcon />}
+                                        onClick={() => setNewAnnouncementData(prev => ({
+                                            ...prev,
+                                            isPinned: !prev.isPinned
+                                        }))}
+                                        fullWidth
+                                    >
+                                        {newAnnouncementData.isPinned ? 'Pinned' : 'Pin'}
+                                    </Button>
+                                </Box>
+                            </Grid>
+                        </Grid>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setAnnouncementDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCreateAnnouncement} variant="contained">
+                        Create Announcement
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     );
 };

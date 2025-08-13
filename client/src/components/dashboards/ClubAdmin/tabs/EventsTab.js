@@ -101,9 +101,16 @@ const EventsTab = ({
                                 <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                                     <CardContent sx={{ flexGrow: 1 }}>
                                         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                                            <Typography variant="h6" noWrap sx={{ flexGrow: 1, mr: 1 }}>
-                                                {event.title}
-                                            </Typography>
+                                            <Box sx={{ flexGrow: 1, mr: 1 }}>
+                                                <Typography variant="h6" noWrap>
+                                                    {event.title}
+                                                </Typography>
+                                                {event.club && (
+                                                    <Typography variant="body2" color="primary" sx={{ fontWeight: 500, mb: 0.5 }}>
+                                                        📍 {event.club.name}
+                                                    </Typography>
+                                                )}
+                                            </Box>
                                             <Box display="flex" gap={0.5}>
                                                 <Chip label={status.label} size="small" color={status.color} />
                                                 {event.isPrivate && (

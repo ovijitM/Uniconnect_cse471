@@ -11,6 +11,7 @@ const eventRoutes = require('./routes/events');
 const universitiesRoutes = require('./routes/universities');
 const clubRequestRoutes = require('./routes/clubRequests');
 const teamRecruitmentRoutes = require('./routes/teamRecruitment');
+const announcementRoutes = require('./routes/announcements');
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +32,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/universities', universitiesRoutes);
 app.use('/api/club-requests', clubRequestRoutes);
 app.use('/api/team-recruitment', teamRecruitmentRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 // Root route
 app.get('/', (req, res) => {
