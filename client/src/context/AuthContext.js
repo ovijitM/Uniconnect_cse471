@@ -13,12 +13,14 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      setToken(storedToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
       // Verify token and get user data
       fetchUserProfile();
     } else {
@@ -42,10 +44,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await axios.post('/api/auth/login', { email, password });
-      const { token, user } = response.data;
+      const { token: authToken, user } = response.data;
 
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem('token', authToken);
+      setToken(authToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
       setUser(user);
 
       return { success: true };
@@ -61,10 +64,11 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('Attempting registration with data:', userData);
       const response = await axios.post('/api/auth/register', userData);
-      const { token, user } = response.data;
+      const { token: authToken, user } = response.data;
 
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem('token', authToken);
+      setToken(authToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
       setUser(user);
 
       return { success: true };
@@ -90,6 +94,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    setToken(null);
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
   };
@@ -125,6 +130,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    token,
     login,
     register,
     logout,

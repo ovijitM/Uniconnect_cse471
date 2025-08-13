@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Container,
     Typography,
@@ -10,15 +10,9 @@ import {
     Chip,
     Tabs,
     Tab,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    TextField,
     Avatar,
     CardActions,
     Paper,
-    Alert,
     CircularProgress
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
@@ -26,41 +20,27 @@ import axios from 'axios';
 import GroupsIcon from '@mui/icons-material/Groups';
 import EventIcon from '@mui/icons-material/Event';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import TeamRecruitmentHub from './components/TeamRecruitmentHub';
+import EnhancedProfile from './components/EnhancedProfile';
 
 // Student Dashboard Component for Regular Students
 const StudentDashboard = () => {
-    const { user, updateProfile, refreshUser } = useAuth();
+    const { user, refreshUser, token } = useAuth();
     const [clubs, setClubs] = useState([]);
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [tabValue, setTabValue] = useState(0);
 
-    // Profile-related state
-    const [universities, setUniversities] = useState([]);
-    const [isEditingProfile, setIsEditingProfile] = useState(false);
-    const [profileFormData, setProfileFormData] = useState({
-        name: user?.name || '',
-        university: user?.university?._id || user?.university || '',
-        major: user?.major || '',
-        year: user?.year || '',
-        bio: user?.bio || '',
-        interests: user?.interests || []
-    });
-    const [profileMessage, setProfileMessage] = useState('');
-    const [profileLoading, setProfileLoading] = useState(false);
-
-    const yearOptions = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
-
     const fetchClubsAndEvents = useCallback(async () => {
         try {
             const universityId = user?.university?._id || user?.university;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
             const [clubsRes, eventsRes] = await Promise.all([
-                axios.get(`/api/clubs${universityId ? `?university=${universityId}` : ''}`),
-                axios.get(`/api/events${universityId ? `?university=${universityId}` : ''}`)
+                axios.get(`/api/clubs${universityId ? `?university=${universityId}` : ''}`, { headers }),
+                axios.get(`/api/events${universityId ? `?university=${universityId}` : ''}`, { headers })
             ]);
 
             setClubs(clubsRes.data.clubs || []);
@@ -72,29 +52,32 @@ const StudentDashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, token]);
 
     useEffect(() => {
         fetchClubsAndEvents();
-        fetchUniversities();
     }, [fetchClubsAndEvents]);
 
-    const fetchUniversities = async () => {
-        try {
-            const response = await axios.get('/api/universities');
-            setUniversities(response.data.universities || []);
-        } catch (error) {
-            console.error('Error fetching universities:', error);
-            setUniversities([]);
+    // Debug user data - remove in production
+    useEffect(() => {
+        if (user) {
+            console.log('Current user data:', user);
+            console.log('User club memberships:', user?.clubMemberships);
+            console.log('User events attended:', user?.eventsAttended);
         }
-    };
+    }, [user]);
 
     const handleJoinClub = async (clubId) => {
         try {
-            await axios.post(`/api/clubs/${clubId}/join`);
-            fetchClubsAndEvents();
-            await refreshUser();
-            alert('Successfully joined the club!');
+            const response = await axios.post(`/api/clubs/${clubId}/join`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data.message) {
+                alert(response.data.message);
+                await refreshUser(); // Refresh user data first
+                await fetchClubsAndEvents(); // Then refresh clubs and events
+            }
         } catch (error) {
             console.error('Error joining club:', error);
             alert(error.response?.data?.message || 'Failed to join club');
@@ -103,54 +86,38 @@ const StudentDashboard = () => {
 
     const handleRegisterEvent = async (eventId) => {
         try {
-            await axios.post(`/api/events/${eventId}/register`);
-            fetchClubsAndEvents();
-            await refreshUser();
-            alert('Successfully registered for the event!');
+            const response = await axios.post(`/api/events/${eventId}/register`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data.message) {
+                alert(response.data.message);
+                await refreshUser(); // Refresh user data first
+                await fetchClubsAndEvents(); // Then refresh clubs and events
+            }
         } catch (error) {
             console.error('Error registering for event:', error);
             alert(error.response?.data?.message || 'Failed to register for event');
         }
     };
 
-    // Profile-related handlers
-    const handleProfileChange = (e) => {
-        setProfileFormData({
-            ...profileFormData,
-            [e.target.name]: e.target.value
-        });
-    };
+    const handleForceRefresh = async () => {
+        setLoading(true);
+        try {
+            await refreshUser();
+            await fetchClubsAndEvents();
 
-    const handleProfileSubmit = async (e) => {
-        e.preventDefault();
-        setProfileLoading(true);
-        setProfileMessage('');
-
-        const result = await updateProfile(profileFormData);
-
-        if (result.success) {
-            setProfileMessage('Profile updated successfully!');
-            setIsEditingProfile(false);
-        } else {
-            setProfileMessage(result.error);
-        }
-
-        setProfileLoading(false);
-    };
-
-    const handleEditToggle = () => {
-        setIsEditingProfile(!isEditingProfile);
-        if (!isEditingProfile) {
-            setProfileFormData({
-                name: user?.name || '',
-                university: user?.university?._id || user?.university || '',
-                major: user?.major || '',
-                year: user?.year || '',
-                bio: user?.bio || '',
-                interests: user?.interests || []
+            // Also test our debug endpoint
+            const debugResponse = await axios.get('/api/debug/user', {
+                headers: { Authorization: `Bearer ${token}` }
             });
+            console.log('=== SERVER DEBUG DATA ===');
+            console.log('Debug response:', debugResponse.data);
+        } catch (error) {
+            console.error('Debug error:', error);
+        } finally {
+            setLoading(false);
         }
-        setProfileMessage('');
     };
 
     const formatDate = (dateString) => {
@@ -164,15 +131,63 @@ const StudentDashboard = () => {
         });
     };
 
-    // Get user's joined clubs
-    const userClubs = clubs.filter(club =>
-        user?.clubMemberships?.some(membership => membership.club?._id === club._id)
-    );
+    // Get user's joined clubs - SIMPLIFIED FOR DEBUGGING
+    const userClubs = useMemo(() => {
+        if (!user?.clubMemberships || !clubs.length) {
+            console.log('No user memberships or clubs available');
+            return [];
+        }
 
-    // Get user's registered events
-    const userEvents = events.filter(event =>
-        user?.eventsAttended?.some(attendance => attendance.event?._id === event._id)
-    );
+        const result = [];
+        console.log('=== CLUB MEMBERSHIP DEBUG ===');
+        console.log('User club memberships:', user.clubMemberships);
+        console.log('Available clubs:', clubs.map(c => ({ id: c._id, name: c.name })));
+
+        user.clubMemberships.forEach(membership => {
+            const membershipClubId = membership.club?._id || membership.club;
+            console.log('Looking for club with ID:', membershipClubId);
+
+            const foundClub = clubs.find(club => club._id === membershipClubId);
+            if (foundClub) {
+                console.log('Found matching club:', foundClub.name);
+                result.push(foundClub);
+            } else {
+                console.log('No matching club found for ID:', membershipClubId);
+            }
+        });
+
+        console.log('Final userClubs result:', result.map(c => c.name));
+        return result;
+    }, [user?.clubMemberships, clubs]);
+
+    // Get user's registered events - SIMPLIFIED FOR DEBUGGING
+    const userEvents = useMemo(() => {
+        if (!user?.eventsAttended || !events.length) {
+            console.log('No user event attendance or events available');
+            return [];
+        }
+
+        const result = [];
+        console.log('=== EVENT REGISTRATION DEBUG ===');
+        console.log('User events attended:', user.eventsAttended);
+        console.log('Available events:', events.map(e => ({ id: e._id, title: e.title })));
+
+        user.eventsAttended.forEach(attendance => {
+            const attendanceEventId = attendance.event?._id || attendance.event;
+            console.log('Looking for event with ID:', attendanceEventId);
+
+            const foundEvent = events.find(event => event._id === attendanceEventId);
+            if (foundEvent) {
+                console.log('Found matching event:', foundEvent.title);
+                result.push(foundEvent);
+            } else {
+                console.log('No matching event found for ID:', attendanceEventId);
+            }
+        });
+
+        console.log('Final userEvents result:', result.map(e => e.title));
+        return result;
+    }, [user?.eventsAttended, events]);
 
     const renderClubs = (clubList) => (
         <Grid container spacing={3}>
@@ -260,10 +275,10 @@ const StudentDashboard = () => {
                     <Box textAlign="center" py={4}>
                         <EventIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                         <Typography variant="h6" color="text.secondary">
-                            {tabValue === 0 ? 'You haven\'t registered for any events yet' : 'No events found'}
+                            No events found
                         </Typography>
                         <Typography color="text.secondary">
-                            {tabValue === 0 ? 'Discover exciting events to attend!' : 'Check back later for upcoming events'}
+                            Check back later for upcoming events
                         </Typography>
                     </Box>
                 </Grid>
@@ -371,12 +386,28 @@ const StudentDashboard = () => {
         <Container maxWidth="lg" sx={{ py: 4 }}>
             {/* Welcome Header */}
             <Paper sx={{ p: 4, mb: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                <Typography variant="h3" fontWeight="bold">
-                    Welcome, {user?.name}! 👋
-                </Typography>
-                <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                    {user?.university?.name || 'University'} • {user?.major || 'Student'} • {user?.year || 'Year N/A'}
-                </Typography>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                        <Typography variant="h3" fontWeight="bold">
+                            Welcome, {user?.name}! 👋
+                        </Typography>
+                        <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                            {user?.university?.name || 'University'} • {user?.major || 'Student'} • {user?.year || 'Year N/A'}
+                        </Typography>
+                    </Box>
+                    <Button
+                        variant="outlined"
+                        sx={{
+                            color: 'white',
+                            borderColor: 'white',
+                            '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+                        }}
+                        onClick={handleForceRefresh}
+                        disabled={loading}
+                    >
+                        {loading ? <CircularProgress size={20} color="inherit" /> : 'Refresh'}
+                    </Button>
+                </Box>
             </Paper>
 
             {/* Quick Stats */}
@@ -446,29 +477,22 @@ const StudentDashboard = () => {
             {/* Navigation Tabs */}
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
                 <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-                    <Tab label="My Dashboard" />
-                    <Tab label="All Clubs" />
-                    <Tab label="All Events" />
-                    <Tab label="My Profile" />
+                    <Tab icon={<GroupsIcon />} label="My Clubs" />
+                    <Tab icon={<GroupsIcon />} label="All Clubs" />
+                    <Tab icon={<EventIcon />} label="Events" />
+                    <Tab icon={<GroupsIcon />} label="Team Hub" />
+                    <Tab icon={<PersonAddIcon />} label="Profile" />
                 </Tabs>
             </Box>
 
-            {/* My Dashboard Tab */}
+            {/* My Clubs Tab */}
             {tabValue === 0 && (
-                <Grid container spacing={4}>
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="h5" gutterBottom>
-                            📚 My Clubs ({userClubs.length})
-                        </Typography>
-                        {renderClubs(userClubs)}
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="h5" gutterBottom>
-                            🎉 My Events ({userEvents.length})
-                        </Typography>
-                        {renderEvents(userEvents)}
-                    </Grid>
-                </Grid>
+                <Box>
+                    <Typography variant="h5" gutterBottom>
+                        📚 My Clubs ({userClubs.length})
+                    </Typography>
+                    {renderClubs(userClubs)}
+                </Box>
             )}
 
             {/* All Clubs Tab */}
@@ -491,123 +515,14 @@ const StudentDashboard = () => {
                 </Box>
             )}
 
-            {/* My Profile Tab */}
+            {/* Team Recruitment Hub Tab */}
             {tabValue === 3 && (
-                <Box>
-                    <Typography variant="h5" gutterBottom>
-                        My Profile
-                    </Typography>
-                    <Card>
-                        <CardContent>
-                            {profileMessage && (
-                                <Alert
-                                    severity={profileMessage.includes('successfully') ? 'success' : 'error'}
-                                    sx={{ mb: 2 }}
-                                >
-                                    {profileMessage}
-                                </Alert>
-                            )}
-                            <Box component="form" onSubmit={handleProfileSubmit}>
-                                <Grid container spacing={3}>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            name="name"
-                                            label="Full Name"
-                                            value={profileFormData.name}
-                                            onChange={handleProfileChange}
-                                            fullWidth
-                                            disabled={!isEditingProfile}
-                                            required
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <FormControl fullWidth disabled={!isEditingProfile}>
-                                            <InputLabel>University</InputLabel>
-                                            <Select
-                                                name="university"
-                                                value={profileFormData.university}
-                                                onChange={handleProfileChange}
-                                                label="University"
-                                            >
-                                                {universities.map((uni) => (
-                                                    <MenuItem key={uni._id} value={uni._id}>
-                                                        {uni.name}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            name="major"
-                                            label="Major"
-                                            value={profileFormData.major}
-                                            onChange={handleProfileChange}
-                                            fullWidth
-                                            disabled={!isEditingProfile}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <FormControl fullWidth disabled={!isEditingProfile}>
-                                            <InputLabel>Year</InputLabel>
-                                            <Select
-                                                name="year"
-                                                value={profileFormData.year}
-                                                onChange={handleProfileChange}
-                                                label="Year"
-                                            >
-                                                {yearOptions.map((year) => (
-                                                    <MenuItem key={year} value={year}>
-                                                        {year}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            name="bio"
-                                            label="Bio"
-                                            value={profileFormData.bio}
-                                            onChange={handleProfileChange}
-                                            multiline
-                                            rows={3}
-                                            fullWidth
-                                            disabled={!isEditingProfile}
-                                            placeholder="Tell us about yourself..."
-                                        />
-                                    </Grid>
-                                </Grid>
+                <TeamRecruitmentHub />
+            )}
 
-                                <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                                    {!isEditingProfile ? (
-                                        <Button
-                                            variant="contained"
-                                            startIcon={<EditIcon />}
-                                            onClick={handleEditToggle}
-                                        >
-                                            Edit Profile
-                                        </Button>
-                                    ) : (
-                                        <>
-                                            <Button onClick={handleEditToggle}>
-                                                Cancel
-                                            </Button>
-                                            <Button
-                                                type="submit"
-                                                variant="contained"
-                                                startIcon={profileLoading ? <CircularProgress size={16} /> : <SaveIcon />}
-                                                disabled={profileLoading}
-                                            >
-                                                {profileLoading ? 'Saving...' : 'Save Changes'}
-                                            </Button>
-                                        </>
-                                    )}
-                                </Box>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                </Box>
+            {/* My Profile Tab */}
+            {tabValue === 4 && (
+                <EnhancedProfile />
             )}
         </Container>
     );
