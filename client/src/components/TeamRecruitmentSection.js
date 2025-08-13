@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box,
     Typography,
@@ -44,7 +44,7 @@ const TeamRecruitmentSection = ({ eventId }) => {
     const [recruitments, setRecruitments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentTab, setCurrentTab] = useState(0);
-    const [filters, setFilters] = useState({
+    const [filters] = useState({
         status: 'all',
         skills: '',
         sortBy: 'newest'
@@ -109,20 +109,8 @@ const TeamRecruitmentSection = ({ eventId }) => {
         Cancelled: 'error'
     };
 
-    useEffect(() => {
-        fetchRecruitments();
-    }, [eventId, filters, pagination.page]);
-
-    useEffect(() => {
-        if (user && currentTab === 1) {
-            fetchUserApplications();
-        }
-        if (user && currentTab === 2) {
-            fetchUserPosts();
-        }
-    }, [currentTab, user]);
-
-    const fetchRecruitments = async () => {
+    // Define functions before useEffect hooks
+    const fetchRecruitments = useCallback(async () => {
         try {
             setLoading(true);
             const queryParams = new URLSearchParams({
@@ -152,9 +140,9 @@ const TeamRecruitmentSection = ({ eventId }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [eventId, filters.status, filters.sortBy, filters.skills, pagination.page]);
 
-    const fetchUserApplications = async () => {
+    const fetchUserApplications = useCallback(async () => {
         try {
             const response = await fetch('/api/team-recruitment/user/applications', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -166,9 +154,9 @@ const TeamRecruitmentSection = ({ eventId }) => {
         } catch (error) {
             console.error('Error fetching user applications:', error);
         }
-    };
+    }, [token]);
 
-    const fetchUserPosts = async () => {
+    const fetchUserPosts = useCallback(async () => {
         try {
             const response = await fetch('/api/team-recruitment/user/posts', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -180,10 +168,28 @@ const TeamRecruitmentSection = ({ eventId }) => {
         } catch (error) {
             console.error('Error fetching user posts:', error);
         }
-    };
+    }, [token]);
+
+    useEffect(() => {
+        fetchRecruitments();
+    }, [fetchRecruitments]);
+
+    useEffect(() => {
+        if (user && currentTab === 1) {
+            fetchUserApplications();
+        }
+        if (user && currentTab === 2) {
+            fetchUserPosts();
+        }
+    }, [currentTab, user, fetchUserApplications, fetchUserPosts]);
 
     const handleCreateRecruitment = async () => {
         try {
+            if (!token) {
+                alert('Authentication required. Please log in again.');
+                return;
+            }
+
             const response = await fetch(`/api/team-recruitment/events/${eventId}`, {
                 method: 'POST',
                 headers: {

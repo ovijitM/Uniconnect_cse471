@@ -14,6 +14,7 @@ import MessageIcon from '@mui/icons-material/Message';
 import SecurityIcon from '@mui/icons-material/Security';
 import DescriptionIcon from '@mui/icons-material/Description';
 import RequestPageIcon from '@mui/icons-material/RequestPage';
+import CampaignIcon from '@mui/icons-material/Campaign';
 
 const DashboardTabs = ({ tabValue, setTabValue }) => {
     const tabsData = [
@@ -21,6 +22,7 @@ const DashboardTabs = ({ tabValue, setTabValue }) => {
         { label: 'Clubs', icon: GroupsIcon },
         { label: 'Events', icon: EventIcon },
         { label: 'Members', icon: PersonIcon },
+        { label: 'Announcements', icon: CampaignIcon },
         { label: 'Analytics', icon: AnalyticsIcon },
         { label: 'Notifications', icon: NotificationsIcon },
         { label: 'Achievements', icon: EmojiEventsIcon },

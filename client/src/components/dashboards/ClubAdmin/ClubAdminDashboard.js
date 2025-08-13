@@ -22,6 +22,7 @@ import ClubRequestsTab from './tabs/ClubRequestsTab';
 import ClubsTab from './tabs/ClubsTab';
 import EventsTab from './tabs/EventsTab';
 import MembersTab from './tabs/MembersTab';
+import AnnouncementsTab from './tabs/AnnouncementsTab';
 // Priority 3 Advanced Features
 import AnalyticsTab from './tabs/AnalyticsTab';
 import NotificationsTab from './tabs/NotificationsTab';
@@ -496,28 +497,35 @@ const ClubAdminDashboard = () => {
                 />
             </TabPanel>
 
-            {/* Priority 3 Advanced Features Tab Panels */}
             <TabPanel value={dialogStates.tabValue} index={4}>
+                <AnnouncementsTab
+                    clubs={dashboardData.myClubs}
+                    refreshData={dashboardData.refreshData}
+                />
+            </TabPanel>
+
+            {/* Priority 3 Advanced Features Tab Panels */}
+            <TabPanel value={dialogStates.tabValue} index={5}>
                 <AnalyticsTab />
             </TabPanel>
 
-            <TabPanel value={dialogStates.tabValue} index={5}>
+            <TabPanel value={dialogStates.tabValue} index={6}>
                 <NotificationsTab />
             </TabPanel>
 
-            <TabPanel value={dialogStates.tabValue} index={6}>
+            <TabPanel value={dialogStates.tabValue} index={7}>
                 <AchievementsTab />
             </TabPanel>
 
-            <TabPanel value={dialogStates.tabValue} index={7}>
+            <TabPanel value={dialogStates.tabValue} index={8}>
                 <TemplatesTab />
             </TabPanel>
 
-            <TabPanel value={dialogStates.tabValue} index={8}>
+            <TabPanel value={dialogStates.tabValue} index={9}>
                 <CommunicationTab />
             </TabPanel>
 
-            <TabPanel value={dialogStates.tabValue} index={9}>
+            <TabPanel value={dialogStates.tabValue} index={10}>
                 <RolesTab />
             </TabPanel>
 
