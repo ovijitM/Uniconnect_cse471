@@ -6,6 +6,90 @@ const { verifyToken } = require('./auth');
 
 const router = express.Router();
 
+// @route   GET /api/team-recruitment
+// @desc    Get all active recruitment posts filtered by university
+// @access  Public
+router.get('/', async (req, res) => {
+    try {
+        const { university, status, skills, page = 1, limit = 20, sortBy = 'createdAt' } = req.query;
+
+        // Build filter
+        let filter = {
+            isActive: true
+        };
+
+        if (status && status !== 'all') {
+            filter.status = status;
+        }
+
+        if (skills) {
+            const skillsArray = skills.split(',').map(skill => skill.trim());
+            filter.requiredSkills = { $in: skillsArray };
+        }
+
+        // Build sort
+        let sort = {};
+        switch (sortBy) {
+            case 'newest':
+                sort.createdAt = -1;
+                break;
+            case 'oldest':
+                sort.createdAt = 1;
+                break;
+            case 'priority':
+                sort.priority = -1;
+                sort.createdAt = -1;
+                break;
+            case 'deadline':
+                sort.deadline = 1;
+                break;
+            default:
+                sort.createdAt = -1;
+        }
+
+        let query = TeamRecruitment.find(filter)
+            .populate('event', 'title date location university')
+            .populate('poster', 'name email avatar')
+            .populate('applications.applicant', 'name email avatar')
+            .sort(sort)
+            .limit(limit * 1)
+            .skip((page - 1) * limit);
+
+        const recruitments = await query.exec();
+
+        // Filter by university if provided
+        let filteredRecruitments = recruitments;
+        if (university) {
+            filteredRecruitments = recruitments.filter(recruitment =>
+                recruitment.event &&
+                recruitment.event.university &&
+                recruitment.event.university.toString() === university.toString()
+            );
+        }
+
+        const total = await TeamRecruitment.countDocuments(filter);
+
+        res.json({
+            success: true,
+            recruitments: filteredRecruitments,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(total / limit),
+                total,
+                hasNext: page < Math.ceil(total / limit),
+                hasPrev: page > 1
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching recruitment posts:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching recruitment posts',
+            error: error.message
+        });
+    }
+});
+
 // @route   GET /api/team-recruitment/events/:eventId
 // @desc    Get all recruitment posts for an event
 // @access  Public

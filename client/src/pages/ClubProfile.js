@@ -274,7 +274,9 @@ const ClubProfile = () => {
 
     useEffect(() => {
         fetchClubData();
-        fetchClubEvents();
+        if (tabValue === 2) { // Events tab
+            fetchClubEvents();
+        }
         if (tabValue === 4) { // Announcements tab
             fetchAnnouncements();
         }
@@ -631,18 +633,18 @@ const ClubProfile = () => {
                                                     {event.title}
                                                 </Typography>
                                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                                    {event.description?.substring(0, 100)}...
+                                                    {event.description ? event.description.substring(0, 100) + '...' : 'No description available'}
                                                 </Typography>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                                                     <CalendarTodayIcon sx={{ fontSize: 16 }} />
                                                     <Typography variant="body2">
-                                                        {formatDate(event.startDate)}
+                                                        {event.startDate ? formatDate(event.startDate) : 'Date TBD'}
                                                     </Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <LocationOnIcon sx={{ fontSize: 16 }} />
                                                     <Typography variant="body2">
-                                                        {event.venue}
+                                                        {event.venue || 'Venue TBD'}
                                                     </Typography>
                                                 </Box>
                                             </CardContent>

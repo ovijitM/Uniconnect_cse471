@@ -356,7 +356,7 @@ router.post('/:id/unregister', verifyToken, async (req, res) => {
 router.get('/club/:clubId', async (req, res) => {
     try {
         const { upcoming = true, page = 1, limit = 12 } = req.query;
-        let query = { organizer: req.params.clubId };
+        let query = { club: req.params.clubId };
 
         // Filter upcoming events
         if (upcoming === 'true') {
@@ -364,8 +364,9 @@ router.get('/club/:clubId', async (req, res) => {
         }
 
         const events = await Event.find(query)
-            .populate('organizer', 'name category')
-            .populate('attendees', 'name email')
+            .populate('club', 'name category')
+            .populate('university', 'name code location')
+            .populate('attendees.user', 'name email')
             .limit(limit * 1)
             .skip((page - 1) * limit)
             .sort({ startDate: 1 });
