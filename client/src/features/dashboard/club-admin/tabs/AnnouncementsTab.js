@@ -36,7 +36,7 @@ import {
     Schedule as ScheduleIcon,
     PriorityHigh as PriorityIcon
 } from '@mui/icons-material';
-import { useAuth } from '../../../../context/AuthContext';
+import { useAuth } from '../../../auth/context/AuthContext';
 import axios from 'axios';
 import { format } from 'date-fns';
 

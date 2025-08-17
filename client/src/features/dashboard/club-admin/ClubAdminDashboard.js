@@ -5,7 +5,7 @@ import {
     Box,
     CircularProgress
 } from '@mui/material';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '../../auth/context/AuthContext';
 
 // Custom hooks
 import { useDashboardData } from './hooks/useDashboardData';

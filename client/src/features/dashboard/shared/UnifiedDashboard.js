@@ -1,8 +1,8 @@
 import React from 'react';
-import { useAuth } from '../../context/AuthContext';
-import AdminDashboard from './AdminDashboard';
-import ClubAdminDashboard from './ClubAdminDashboard';
-import StudentDashboard from './StudentDashboard';
+import { useAuth } from '../../auth/context/AuthContext';
+import AdminDashboard from '../admin/AdminDashboard';
+import ClubAdminDashboard from '../club-admin/ClubAdminDashboard';
+import StudentDashboard from '../student/StudentDashboard';
 import { Container, Typography, CircularProgress, Box } from '@mui/material';
 
 /**

@@ -23,7 +23,7 @@ import {
     DialogContent,
     DialogActions
 } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../features/auth/context/AuthContext';
 import axios from 'axios';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -53,7 +53,7 @@ const Clubs = () => {
     });
 
     const categories = [
-        'All', 'Academic', 'Sports', 'Cultural', 'Technical', 'Social Service',
+        'All', 'Academic', 'Sports', 'Cultural', 'Technical', 'Social', 'Social Service',
         'Arts', 'Music', 'Drama', 'Photography', 'Literature', 'Other'
     ];
 

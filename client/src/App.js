@@ -2,18 +2,18 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import Navbar from './components/Navbar';
+import { AuthProvider, useAuth } from './features/auth/context/AuthContext';
+import Navbar from './components/common/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Clubs from './pages/Clubs';
 import Events from './pages/Events';
-import UnifiedDashboard from './components/dashboards/UnifiedDashboard'; // Now handles all roles
+import UnifiedDashboard from './features/dashboard/shared/UnifiedDashboard'; // Now handles all roles
 import ClubProfile from './pages/ClubProfile';
 import EventProfile from './pages/EventProfile';
-import './App.css';
+import './styles/App.css';
 
 const theme = createTheme({
   palette: {
