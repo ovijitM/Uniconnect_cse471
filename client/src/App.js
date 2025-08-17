@@ -10,7 +10,7 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Clubs from './pages/Clubs';
 import Events from './pages/Events';
-import UnifiedDashboard from './components/AdminDashboard'; // Now handles all roles
+import UnifiedDashboard from './components/dashboards/UnifiedDashboard'; // Now handles all roles
 import ClubProfile from './pages/ClubProfile';
 import EventProfile from './pages/EventProfile';
 import './App.css';
