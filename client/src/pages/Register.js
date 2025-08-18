@@ -12,7 +12,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../features/auth/context/AuthContext';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 const Register = () => {

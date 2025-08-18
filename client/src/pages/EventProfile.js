@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -23,7 +23,7 @@ import {
     Alert,
     Link
 } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../features/auth/context/AuthContext';
 import axios from 'axios';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventIcon from '@mui/icons-material/Event';
@@ -39,7 +39,7 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import InfoIcon from '@mui/icons-material/Info';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import TeamRecruitmentSection from '../components/TeamRecruitmentSection';
+import TeamRecruitmentSection from '../features/team-recruitment/TeamRecruitmentSection';
 
 const EventProfile = () => {
     const { id } = useParams();
@@ -51,11 +51,7 @@ const EventProfile = () => {
     const [tabValue, setTabValue] = useState(0);
     const [registerLoading, setRegisterLoading] = useState(false);
 
-    useEffect(() => {
-        fetchEventData();
-    }, [id]);
-
-    const fetchEventData = async () => {
+    const fetchEventData = useCallback(async () => {
         try {
             const response = await axios.get(`/api/events/${id}`);
             setEvent(response.data);
@@ -65,7 +61,11 @@ const EventProfile = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        fetchEventData();
+    }, [fetchEventData]);
 
     const isUserRegistered = () => {
         return event?.attendees?.some(attendee =>
@@ -127,12 +127,7 @@ const EventProfile = () => {
         });
     };
 
-    const formatTime = (dateString) => {
-        return new Date(dateString).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+
 
     const formatDateTime = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {

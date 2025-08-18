@@ -49,7 +49,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', authToken);
       setToken(authToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
-      setUser(user);
+
+      // Immediately fetch full user profile with populated data
+      await fetchUserProfile();
 
       return { success: true };
     } catch (error) {
@@ -69,7 +71,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', authToken);
       setToken(authToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
-      setUser(user);
+
+      // Immediately fetch full user profile with populated data
+      await fetchUserProfile();
 
       return { success: true };
     } catch (error) {

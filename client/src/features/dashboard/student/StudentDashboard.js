@@ -15,15 +15,15 @@ import {
     Paper,
     CircularProgress
 } from '@mui/material';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../auth/context/AuthContext';
 import axios from 'axios';
 import GroupsIcon from '@mui/icons-material/Groups';
 import EventIcon from '@mui/icons-material/Event';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import TeamRecruitmentHub from './components/TeamRecruitmentHub';
-import EnhancedProfile from './components/EnhancedProfile';
+import TeamRecruitmentHub from '../shared/TeamRecruitmentHub';
+import EnhancedProfile from '../shared/EnhancedProfile';
 
 // Student Dashboard Component for Regular Students
 const StudentDashboard = () => {
@@ -55,8 +55,10 @@ const StudentDashboard = () => {
     }, [user, token]);
 
     useEffect(() => {
-        fetchClubsAndEvents();
-    }, [fetchClubsAndEvents]);
+        if (user && user.clubMemberships !== undefined && user.eventsAttended !== undefined) {
+            fetchClubsAndEvents();
+        }
+    }, [fetchClubsAndEvents, user]);
 
     // Debug user data - remove in production
     useEffect(() => {
@@ -64,6 +66,7 @@ const StudentDashboard = () => {
             console.log('Current user data:', user);
             console.log('User club memberships:', user?.clubMemberships);
             console.log('User events attended:', user?.eventsAttended);
+            console.log('User data fully loaded:', user.clubMemberships !== undefined && user.eventsAttended !== undefined);
         }
     }, [user]);
 
@@ -371,7 +374,7 @@ const StudentDashboard = () => {
         </Grid>
     );
 
-    if (loading) {
+    if (loading || !user || user.clubMemberships === undefined || user.eventsAttended === undefined) {
         return (
             <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
                 <CircularProgress size={60} />

@@ -10,7 +10,7 @@ import {
   Link as MuiLink
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../features/auth/context/AuthContext';
 import LoginIcon from '@mui/icons-material/Login';
 
 const Login = () => {

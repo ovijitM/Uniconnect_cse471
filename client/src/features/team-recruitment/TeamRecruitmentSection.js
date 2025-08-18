@@ -36,7 +36,7 @@ import {
     Group as GroupIcon,
     Send as SendIcon
 } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../auth/context/AuthContext';
 import { format } from 'date-fns';
 
 const TeamRecruitmentSection = ({ eventId }) => {

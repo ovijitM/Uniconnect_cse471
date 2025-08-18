@@ -20,6 +20,7 @@ const clubSchema = new mongoose.Schema({
             'Sports',
             'Cultural',
             'Technical',
+            'Social',
             'Social Service',
             'Arts & Literature',
             'Music & Dance',
