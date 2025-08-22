@@ -21,7 +21,9 @@ import {
     Tabs,
     CircularProgress,
     Alert,
-    Link
+    Link,
+    TextField,
+    Rating
 } from '@mui/material';
 import { useAuth } from '../features/auth/context/AuthContext';
 import axios from 'axios';
@@ -44,24 +46,33 @@ import TeamRecruitmentSection from '../features/team-recruitment/TeamRecruitment
 const EventProfile = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [tabValue, setTabValue] = useState(0);
     const [registerLoading, setRegisterLoading] = useState(false);
 
+    // Review form state
+    const [rating, setRating] = useState(0);
+    const [reviewText, setReviewText] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+    const [reviewError, setReviewError] = useState(null);
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
     const fetchEventData = useCallback(async () => {
         try {
-            const response = await axios.get(`/api/events/${id}`);
+            const response = await axios.get(`/api/events/${id}`, { headers });
             setEvent(response.data);
+            setError(null);
         } catch (error) {
             console.error('Error fetching event data:', error);
             setError(error.response?.data?.message || 'Failed to load event information');
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, headers]);
 
     useEffect(() => {
         fetchEventData();
@@ -85,6 +96,12 @@ const EventProfile = () => {
         return new Date() > new Date(event?.startDate);
     };
 
+    const isUserAttended = () => {
+      return event?.attendees?.some(attendee =>
+          (typeof attendee === 'object' ? attendee.user._id : attendee) === user?._id && attendee.attended === true
+      );
+    };
+
     const handleRegisterUnregister = async () => {
         if (!user) {
             navigate('/login');
@@ -99,9 +116,9 @@ const EventProfile = () => {
         setRegisterLoading(true);
         try {
             if (isUserRegistered()) {
-                await axios.post(`/api/events/${id}/unregister`);
+                await axios.post(`/api/events/${id}/unregister`, {}, { headers });
             } else {
-                await axios.post(`/api/events/${id}/register`);
+                await axios.post(`/api/events/${id}/register`, {}, { headers });
             }
             await fetchEventData(); // Refresh event data
         } catch (error) {
@@ -109,6 +126,31 @@ const EventProfile = () => {
             alert(error.response?.data?.message || 'Operation failed');
         } finally {
             setRegisterLoading(false);
+        }
+    };
+
+    const handleSubmitReview = async () => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        if (rating === 0) {
+            setReviewError('Please provide a star rating');
+            return;
+        }
+        setReviewSubmitting(true);
+        setReviewError(null);
+        try {
+            await axios.post(`/api/events/${id}/review`, { rating, comment: reviewText }, { headers });
+            setRating(0);
+            setReviewText('');
+            await fetchEventData(); // Refresh to show new review
+            alert('Review submitted successfully');
+        } catch (err) {
+            console.error('Error submitting review:', err);
+            setReviewError(err.response?.data?.message || 'Failed to submit review');
+        } finally {
+            setReviewSubmitting(false);
         }
     };
 
@@ -126,8 +168,6 @@ const EventProfile = () => {
             day: 'numeric'
         });
     };
-
-
 
     const formatDateTime = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -309,8 +349,8 @@ const EventProfile = () => {
                                         }
                                         sx={{
                                             minWidth: 160,
-                                            background: !isUserRegistered() && !isEventFull() ?
-                                                'linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%)' : undefined
+                                            background: !isUserRegistered() && !isEventFull()
+                                                ? 'linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%)' : undefined
                                         }}
                                     >
                                         {registerLoading ? (
@@ -365,6 +405,7 @@ const EventProfile = () => {
                     <Tab label="Organizer" />
                     <Tab label="Contact" />
                     <Tab label="Team Recruitment" />
+                    <Tab label="Reviews" />
                 </Tabs>
             </Paper>
 
@@ -478,39 +519,37 @@ const EventProfile = () => {
                         <Typography variant="h6" gutterBottom>
                             Attendees ({event.attendees?.length || 0})
                         </Typography>
-                        {(!event.attendees || event.attendees.length === 0) ? (
+                        {!event.attendees || event.attendees.length === 0 ? (
                             <Typography variant="body2" color="text.secondary">
                                 No attendees registered yet.
                             </Typography>
                         ) : (
                             <List>
                                 {event.attendees.map((attendee, index) => {
-                                    const user = typeof attendee === 'object' ? attendee.user : attendee;
+                                    const userAttendee = typeof attendee === 'object' ? attendee.user : attendee;
                                     return (
-                                        <React.Fragment key={user._id || user}>
+                                        <React.Fragment key={userAttendee._id || userAttendee}>
                                             <ListItem>
                                                 <ListItemAvatar>
                                                     <Avatar
-                                                        src={user.profilePicture}
+                                                        src={userAttendee.profilePicture}
                                                         sx={{ bgcolor: 'primary.main' }}
                                                     >
-                                                        {typeof user === 'object' ?
-                                                            user.name?.charAt(0).toUpperCase() :
-                                                            '?'
-                                                        }
+                                                        {typeof userAttendee === 'object' ?
+                                                            userAttendee.name?.charAt(0).toUpperCase() : '?'}
                                                     </Avatar>
                                                 </ListItemAvatar>
                                                 <ListItemText
-                                                    primary={typeof user === 'object' ? user.name : 'Anonymous'}
+                                                    primary={typeof userAttendee === 'object' ? userAttendee.name : 'Anonymous'}
                                                     secondary={
-                                                        typeof user === 'object' ? (
+                                                        typeof userAttendee === 'object' ? (
                                                             <Box>
                                                                 <Typography variant="body2" component="span">
-                                                                    {user.email}
+                                                                    {userAttendee.email}
                                                                 </Typography>
-                                                                {user.major && (
+                                                                {userAttendee.major && (
                                                                     <Typography variant="body2" component="div">
-                                                                        {user.major} • {user.year}
+                                                                        {userAttendee.major} • {userAttendee.year}
                                                                     </Typography>
                                                                 )}
                                                             </Box>
@@ -665,7 +704,6 @@ const EventProfile = () => {
                                 </ListItem>
                             )}
 
-                            {/* Fallback to club contact if no specific contact info */}
                             {!event.contactPerson && !event.contactInfo && event.club && (
                                 <ListItem>
                                     <ListItemAvatar>
@@ -684,9 +722,82 @@ const EventProfile = () => {
                 </Card>
             )}
 
-            {/* Team Recruitment Tab */}
             {tabValue === 4 && (
                 <TeamRecruitmentSection eventId={event._id} />
+            )}
+
+            {tabValue === 5 && (
+                <Card>
+                    <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                            Reviews ({event.reviews?.length || 0})
+                        </Typography>
+                        {!event.reviews || event.reviews.length === 0 ? (
+                            <Typography color="text.secondary">No reviews yet.</Typography>
+                        ) : (
+                            event.reviews.map((review, idx) => (
+                                <Box key={review._id || idx} sx={{ mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                        <Avatar
+                                            src={review.user?.profilePicture}
+                                            sx={{ width: 32, height: 32, mr: 1, bgcolor: 'primary.main' }}
+                                        >
+                                            {review.user?.name?.charAt(0).toUpperCase()}
+                                        </Avatar>
+                                        <Typography variant="subtitle2">{review.user?.name || 'User'}</Typography>
+                                    </Box>
+                                    <Rating value={review.rating} readOnly size="small" />
+                                    <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                        {review.comment}
+                                    </Typography>
+                                </Box>
+                            ))
+                        )}
+                        {user && isUserAttended() && (
+                            <>
+                                <Divider sx={{ my: 2 }} />
+                                <Typography variant="h6" gutterBottom>Add Your Review</Typography>
+                                <Rating
+                                    value={rating}
+                                    onChange={(_, newValue) => setRating(newValue)}
+                                    size="large"
+                                />
+                                <TextField
+                                    multiline
+                                    minRows={3}
+                                    maxRows={6}
+                                    value={reviewText}
+                                    onChange={e => setReviewText(e.target.value)}
+                                    placeholder="Write your review here..."
+                                    fullWidth
+                                    sx={{ mt: 1, mb: 2 }}
+                                />
+                                {reviewError && (
+                                    <Alert severity="error" sx={{ mb: 2 }}>
+                                        {reviewError}
+                                    </Alert>
+                                )}
+                                <Button
+                                    variant="contained"
+                                    onClick={handleSubmitReview}
+                                    disabled={reviewSubmitting}
+                                >
+                                    {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                                </Button>
+                            </>
+                        )}
+                        {!user && (
+                            <Typography color="text.secondary" sx={{ mt: 2 }}>
+                                Please log in to submit a review.
+                            </Typography>
+                        )}
+                        {user && !isUserAttended() && (
+                            <Typography color="text.secondary" sx={{ mt: 2 }}>
+                                Only attendees can submit reviews.
+                            </Typography>
+                        )}
+                    </CardContent>
+                </Card>
             )}
         </Container>
     );
