@@ -1,0 +1,32 @@
+{
+  "name": "uniconnect-mern",
+  "version": "1.0.0",
+  "description": "MERN stack application for Uniconnect",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "install-server": "cd server && npm install",
+    "install-client": "cd client && npm install",
+    "install-all": "npm run install-server && npm run install-client",
+    "build": "cd client && npm run build",
+    "heroku-postbuild": "npm run install-all && npm run build"
+  },
+  "keywords": [
+    "mern",
+    "react",
+    "express",
+    "mongodb",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "dependencies": {
+    "node-cron": "^4.2.1",
+    "react-scripts": "^0.0.0"
+  }
+}
