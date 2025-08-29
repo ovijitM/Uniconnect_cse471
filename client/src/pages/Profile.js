@@ -16,7 +16,7 @@ import {
   Select
 } from '@mui/material';
 import { useAuth } from '../features/auth/context/AuthContext';
-import axios from 'axios';
+import api from '../config/api';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import GroupsIcon from '@mui/icons-material/Groups';
@@ -46,7 +46,7 @@ const Profile = () => {
 
   const fetchUniversities = async () => {
     try {
-      const response = await axios.get('/api/universities');
+      const response = await api.get('/api/universities');
       setUniversities(response.data.universities || []);
     } catch (error) {
       console.error('Error fetching universities:', error);

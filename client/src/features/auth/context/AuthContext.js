@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../../config/api';
 
 const AuthContext = createContext();
 
@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
       // Verify token and get user data
       fetchUserProfile();
     } else {
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await axios.get('/api/auth/profile');
+      const response = await api.get('/api/auth/profile');
       setUser(response.data.user);
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -43,12 +43,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await api.post('/api/auth/login', { email, password });
       const { token: authToken } = response.data;
 
       localStorage.setItem('token', authToken);
       setToken(authToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
 
       // Immediately fetch full user profile with populated data
       await fetchUserProfile();
@@ -65,12 +65,12 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       console.log('Attempting registration with data:', userData);
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await api.post('/api/auth/register', userData);
       const { token: authToken } = response.data;
 
       localStorage.setItem('token', authToken);
       setToken(authToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
 
       // Immediately fetch full user profile with populated data
       await fetchUserProfile();
@@ -99,13 +99,13 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
-    delete axios.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common['Authorization'];
     setUser(null);
   };
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put('/api/users/profile', profileData);
+      const response = await api.put('/api/users/profile', profileData);
       setUser(response.data.user);
 
       // Fetch fresh profile data to ensure university is properly populated

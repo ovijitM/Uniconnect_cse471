@@ -24,7 +24,7 @@ import {
     DialogActions
 } from '@mui/material';
 import { useAuth } from '../features/auth/context/AuthContext';
-import axios from 'axios';
+import api from '../config/api';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import AddIcon from '@mui/icons-material/Add';
@@ -75,7 +75,7 @@ const Clubs = () => {
             if (category && category !== 'All') params.append('category', category);
             if (universityFilter && universityFilter !== 'All') params.append('university', universityFilter);
 
-            const response = await axios.get(`/api/clubs?${params}`);
+            const response = await api.get(`/api/clubs?${params}`);
 
             setClubs(response.data.clubs || []);
             setTotalPages(response.data.totalPages || 1);
@@ -89,7 +89,7 @@ const Clubs = () => {
 
     const fetchUniversities = async () => {
         try {
-            const response = await axios.get('/api/universities');
+            const response = await api.get('/api/universities');
             setUniversities(response.data.universities || []);
         } catch (error) {
             console.error('Error fetching universities:', error);
@@ -99,7 +99,7 @@ const Clubs = () => {
 
     const handleJoinClub = async (clubId) => {
         try {
-            await axios.post(`/api/clubs/${clubId}/join`);
+            await api.post(`/api/clubs/${clubId}/join`);
             fetchClubs(); // Refresh data
         } catch (error) {
             console.error('Error joining club:', error);
@@ -109,7 +109,7 @@ const Clubs = () => {
 
     const handleCreateClub = async () => {
         try {
-            await axios.post('/api/clubs', newClub);
+            await api.post('/api/clubs', newClub);
             setCreateDialogOpen(false);
             setNewClub({
                 name: '',

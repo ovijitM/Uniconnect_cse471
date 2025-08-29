@@ -1,4 +1,5 @@
 // API Configuration for different environments
+import axios from 'axios';
 
 const config = {
   development: {
@@ -14,7 +15,6 @@ const environment = process.env.NODE_ENV || 'development';
 export const API_BASE_URL = config[environment].API_URL;
 
 // Create axios instance with base configuration
-import axios from 'axios';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -52,4 +52,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-export { API_BASE_URL };

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Typography, Button, Box, Grid, Card, CardContent, Avatar, Chip } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
-import axios from 'axios';
+import api from '../config/api';
 import SchoolIcon from '@mui/icons-material/School';
 import GroupsIcon from '@mui/icons-material/Groups';
 import EventIcon from '@mui/icons-material/Event';
@@ -22,8 +22,8 @@ const Home = () => {
   const fetchFeaturedContent = async () => {
     try {
       const [clubsRes, eventsRes] = await Promise.all([
-        axios.get('/api/clubs?limit=6'),
-        axios.get('/api/events?limit=6')
+        api.get('/api/clubs?limit=6'),
+        api.get('/api/events?limit=6')
       ]);
 
       setFeaturedClubs(clubsRes.data.clubs || []);

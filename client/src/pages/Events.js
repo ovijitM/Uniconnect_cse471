@@ -30,7 +30,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { useAuth } from '../features/auth/context/AuthContext';
-import axios from 'axios';
+import api from '../config/api';
 import EventIcon from '@mui/icons-material/Event';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AddIcon from '@mui/icons-material/Add';
@@ -101,7 +101,7 @@ const Events = () => {
 
             // Don't filter by university - let server handle public/private logic
 
-            const response = await axios.get(`/api/events?${params}`);
+            const response = await api.get(`/api/events?${params}`);
 
             setEvents(response.data.events || []);
             setTotalPages(response.data.totalPages || 1);
@@ -115,7 +115,7 @@ const Events = () => {
 
     const fetchClubs = async () => {
         try {
-            const response = await axios.get('/api/clubs');
+            const response = await api.get('/api/clubs');
             setClubs(response.data.clubs || []);
         } catch (error) {
             console.error('Error fetching clubs:', error);
@@ -125,7 +125,7 @@ const Events = () => {
 
     const fetchUniversities = async () => {
         try {
-            const response = await axios.get('/api/universities');
+            const response = await api.get('/api/universities');
             setUniversities(response.data.universities || []);
         } catch (error) {
             console.error('Error fetching universities:', error);
@@ -135,7 +135,7 @@ const Events = () => {
 
     const handleRegisterEvent = async (eventId) => {
         try {
-            await axios.post(`/api/events/${eventId}/register`);
+            await api.post(`/api/events/${eventId}/register`);
             fetchEvents(); // Refresh data
         } catch (error) {
             console.error('Error registering for event:', error);
@@ -153,7 +153,7 @@ const Events = () => {
                 capacity: newEvent.capacity ? parseInt(newEvent.capacity) : undefined
             };
 
-            await axios.post('/api/events', eventData);
+            await api.post('/api/events', eventData);
             setCreateDialogOpen(false);
             resetNewEvent();
             fetchEvents(); // Refresh data
