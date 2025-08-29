@@ -64,7 +64,6 @@ import {
 
 const CommunicationTab = () => {
     const [tabValue, setTabValue] = useState(0);
-    const [selectedMessage, setSelectedMessage] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
     const [communicationData, setCommunicationData] = useState({
         messages: [
@@ -383,7 +382,6 @@ const CommunicationTab = () => {
                                             size="small"
                                             onClick={(e) => {
                                                 setAnchorEl(e.currentTarget);
-                                                setSelectedMessage(message);
                                             }}
                                         >
                                             <MoreVert />

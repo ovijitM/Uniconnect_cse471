@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await axios.post('/api/auth/login', { email, password });
-      const { token: authToken, user } = response.data;
+      const { token: authToken } = response.data;
 
       localStorage.setItem('token', authToken);
       setToken(authToken);
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('Attempting registration with data:', userData);
       const response = await axios.post('/api/auth/register', userData);
-      const { token: authToken, user } = response.data;
+      const { token: authToken } = response.data;
 
       localStorage.setItem('token', authToken);
       setToken(authToken);
