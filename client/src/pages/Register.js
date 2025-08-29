@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
+import api from '../config/api';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 const Register = () => {
@@ -40,8 +41,8 @@ const Register = () => {
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/universities');
-        const data = await response.json();
+        const response = await api.get('/universities');
+        const data = response.data;
 
         if (data.success) {
           setUniversities(data.universities);
