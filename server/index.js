@@ -21,27 +21,21 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-const allowedOrigins = [
-  'http://0.0.0.0',
-  'https://localhost:3000',
-  process.env.CLIENT_URL
-].filter(Boolean); // Remove any undefined values
-
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Check if origin is in allowedOrigins or is a vercel.app domain
-    const isAllowed = allowedOrigins.includes(origin) || 
-                     origin.includes('localhost') || 
-                     origin.endsWith('.vercel.app');
+    // Allow all origins, with special handling for Vercel domains
+    const isVercelDomain = origin.endsWith('.vercel.app');
+    const isLocalhost = origin.includes('localhost');
     
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow all origins but log Vercel domains for reference
+    if (isVercelDomain) {
+      console.log(`✅ Vercel domain allowed: ${origin}`);
     }
+    
+    callback(null, true); // Allow all origins
   },
   credentials: true,
   optionsSuccessStatus: 200
