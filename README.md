@@ -317,7 +317,8 @@ npm start
 The application will be available at:
 
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5001
+- **Backend API (Development)**: http://localhost:5001
+- **Backend API (Production)**: https://uniconnect-cse471.onrender.com
 - **Development Tools**: Concurrent server monitoring with automatic restart
 
 ## 👤 Test Accounts
