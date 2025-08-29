@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -75,7 +76,7 @@ const Clubs = () => {
             if (category && category !== 'All') params.append('category', category);
             if (universityFilter && universityFilter !== 'All') params.append('university', universityFilter);
 
-            const response = await axios.get(`/api/clubs?${params}`);
+            const response = await axios.get(`${API_BASE_URL}/clubs?${params}`);
 
             setClubs(response.data.clubs || []);
             setTotalPages(response.data.totalPages || 1);
@@ -89,7 +90,7 @@ const Clubs = () => {
 
     const fetchUniversities = async () => {
         try {
-            const response = await axios.get('/api/universities');
+            const response = await axios.get(`${API_BASE_URL}/universities`);
             setUniversities(response.data.universities || []);
         } catch (error) {
             console.error('Error fetching universities:', error);
@@ -99,7 +100,7 @@ const Clubs = () => {
 
     const handleJoinClub = async (clubId) => {
         try {
-            await axios.post(`/api/clubs/${clubId}/join`);
+            await axios.post(`${API_BASE_URL}/clubs/${clubId}/join`);
             fetchClubs(); // Refresh data
         } catch (error) {
             console.error('Error joining club:', error);
@@ -109,7 +110,7 @@ const Clubs = () => {
 
     const handleCreateClub = async () => {
         try {
-            await axios.post('/api/clubs', newClub);
+            await axios.post(`${API_BASE_URL}/clubs`, newClub);
             setCreateDialogOpen(false);
             setNewClub({
                 name: '',

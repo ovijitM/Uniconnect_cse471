@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../../../config/api';
 import {
     Box,
     Card,
@@ -94,7 +95,7 @@ const EnhancedProfile = () => {
 
     const fetchUniversities = async () => {
         try {
-            const response = await axios.get('/api/universities');
+            const response = await axios.get(`${API_BASE_URL}/universities`);
             setUniversities(response.data.universities || []);
         } catch (error) {
             console.error('Error fetching universities:', error);
@@ -106,15 +107,15 @@ const EnhancedProfile = () => {
             if (!token) return;
 
             const [clubsRes, eventsRes, applicationsRes] = await Promise.all([
-                axios.get('/api/users/profile/clubs', {
+                axios.get(`${API_BASE_URL}/users/profile/clubs`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).catch(() => ({ data: { clubs: [] } })),
 
-                axios.get('/api/users/profile/events', {
+                axios.get(`${API_BASE_URL}/users/profile/events`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).catch(() => ({ data: { events: [] } })),
 
-                axios.get('/api/team-recruitment/user/applications', {
+                axios.get(`${API_BASE_URL}/team-recruitment/user/applications`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).catch(() => ({ data: { applications: [] } }))
             ]);

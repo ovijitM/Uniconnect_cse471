@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../../../../config/api';
 import {
     Box,
     Grid,
@@ -72,7 +73,7 @@ const AnnouncementsTab = ({ clubs, refreshData }) => {
 
         try {
             setLoading(true);
-            const response = await axios.get(`/api/announcements/club/${clubId}?page=1&limit=20`, {
+            const response = await axios.get(`${API_BASE_URL}/announcements/club/${clubId}?page=1&limit=20`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setAnnouncements(response.data.announcements || []);
@@ -100,11 +101,11 @@ const AnnouncementsTab = ({ clubs, refreshData }) => {
             };
 
             if (editDialog.open) {
-                await axios.put(`/api/announcements/${editDialog.announcement._id}`, payload, {
+                await axios.put(`${API_BASE_URL}/announcements/${editDialog.announcement._id}`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             } else {
-                await axios.post('/api/announcements', payload, {
+                await axios.post(`${API_BASE_URL}/announcements`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             }
@@ -125,7 +126,7 @@ const AnnouncementsTab = ({ clubs, refreshData }) => {
         if (!window.confirm('Are you sure you want to delete this announcement?')) return;
 
         try {
-            await axios.delete(`/api/announcements/${announcementId}`, {
+            await axios.delete(`${API_BASE_URL}/announcements/${announcementId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchAnnouncements(selectedClub);
@@ -139,7 +140,7 @@ const AnnouncementsTab = ({ clubs, refreshData }) => {
     // Handle pin/unpin
     const handleTogglePin = async (announcement) => {
         try {
-            await axios.put(`/api/announcements/${announcement._id}`,
+            await axios.put(`${API_BASE_URL}/announcements/${announcement._id}`,
                 { isPinned: !announcement.isPinned },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

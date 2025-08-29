@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -25,6 +26,7 @@ import {
 } from '@mui/material';
 import { useAuth } from '../features/auth/context/AuthContext';
 import axios from 'axios';
+import EventRegistration from '../components/EventRegistration';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventIcon from '@mui/icons-material/Event';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -50,10 +52,11 @@ const EventProfile = () => {
     const [error, setError] = useState(null);
     const [tabValue, setTabValue] = useState(0);
     const [registerLoading, setRegisterLoading] = useState(false);
+    const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
     const fetchEventData = useCallback(async () => {
         try {
-            const response = await axios.get(`/api/events/${id}`);
+            const response = await axios.get(`${API_BASE_URL}/events/${id}`);
             setEvent(response.data);
         } catch (error) {
             console.error('Error fetching event data:', error);
@@ -77,12 +80,29 @@ const EventProfile = () => {
         return event?.maxAttendees && event.attendees?.length >= event.maxAttendees;
     };
 
-    const isRegistrationDeadlinePassed = () => {
-        return event?.registrationDeadline && new Date() > new Date(event.registrationDeadline);
+    // Removed unused isRegistrationDeadlinePassed helper
+    
+    const isRegistrationOpen = () => {
+        if (!event) return false;
+        const now = new Date();
+        const start = event.startDate ? new Date(event.startDate) : null;
+        const deadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
+        if (event.endDate && now > new Date(event.endDate)) return false;
+        if (deadline) return now <= deadline;
+        if (start) return now < start;
+        return true;
     };
 
     const isEventPast = () => {
-        return new Date() > new Date(event?.startDate);
+        return new Date() > new Date(event?.endDate);
+    };
+
+    const canUserRegister = () => {
+        if (event?.accessType === 'university-exclusive' && 
+            event.club?.university?._id !== user?.university?._id) {
+            return false;
+        }
+        return true;
     };
 
     const handleRegisterUnregister = async () => {
@@ -96,20 +116,38 @@ const EventProfile = () => {
             return;
         }
 
-        setRegisterLoading(true);
-        try {
-            if (isUserRegistered()) {
-                await axios.post(`/api/events/${id}/unregister`);
-            } else {
-                await axios.post(`/api/events/${id}/register`);
-            }
-            await fetchEventData(); // Refresh event data
-        } catch (error) {
-            console.error('Error registering/unregistering for event:', error);
-            alert(error.response?.data?.message || 'Operation failed');
-        } finally {
-            setRegisterLoading(false);
+        // Check access control for university-exclusive events
+        if (event.accessType === 'university-exclusive' && 
+            event.club?.university?._id !== user.university?._id) {
+            alert('This event is exclusive to students from ' + (event.club?.university?.name || 'the organizing university'));
+            return;
         }
+
+        if (isUserRegistered()) {
+            // Handle unregistration directly
+            setRegisterLoading(true);
+            try {
+                await axios.post(`${API_BASE_URL}/events/${id}/unregister`);
+                await fetchEventData(); // Refresh event data
+            } catch (error) {
+                console.error('Error unregistering from event:', error);
+                alert(error.response?.data?.message || 'Unregistration failed');
+            } finally {
+                setRegisterLoading(false);
+            }
+        } else {
+            // Open registration modal for new registrations
+            setShowRegistrationModal(true);
+        }
+    };
+
+    const handleRegistrationSuccess = async () => {
+        setShowRegistrationModal(false);
+        await fetchEventData(); // Refresh event data
+    };
+
+    const handleCloseRegistrationModal = () => {
+        setShowRegistrationModal(false);
     };
 
     const handleClubClick = () => {
@@ -305,7 +343,8 @@ const EventProfile = () => {
                                         disabled={
                                             registerLoading ||
                                             (isEventFull() && !isUserRegistered()) ||
-                                            isRegistrationDeadlinePassed()
+                                            !isRegistrationOpen() ||
+                                            (!canUserRegister() && !isUserRegistered())
                                         }
                                         sx={{
                                             minWidth: 160,
@@ -317,8 +356,10 @@ const EventProfile = () => {
                                             <CircularProgress size={20} />
                                         ) : isEventFull() && !isUserRegistered() ? (
                                             'Event Full'
-                                        ) : isRegistrationDeadlinePassed() && !isUserRegistered() ? (
+                                        ) : !isRegistrationOpen() && !isUserRegistered() ? (
                                             'Registration Closed'
+                                        ) : !canUserRegister() && !isUserRegistered() ? (
+                                            'University Exclusive'
                                         ) : isUserRegistered() ? (
                                             'Unregister'
                                         ) : (
@@ -687,6 +728,15 @@ const EventProfile = () => {
             {/* Team Recruitment Tab */}
             {tabValue === 4 && (
                 <TeamRecruitmentSection eventId={event._id} />
+            )}
+
+            {/* Event Registration Modal */}
+            {showRegistrationModal && (
+                <EventRegistration
+                    eventId={event._id}
+                    onClose={handleCloseRegistrationModal}
+                    onSuccess={handleRegistrationSuccess}
+                />
             )}
         </Container>
     );

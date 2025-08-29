@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -47,11 +48,13 @@ const Events = () => {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
     const [search, setSearch] = useState('');
     const [type, setType] = useState('All');
     const [clubFilter, setClubFilter] = useState('All');
     const [universityFilter, setUniversityFilter] = useState('All');
-    const [upcomingOnly, setUpcomingOnly] = useState(true);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [accessTypeFilter, setAccessTypeFilter] = useState('all');
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [newEvent, setNewEvent] = useState({
         title: '',
@@ -70,7 +73,7 @@ const Events = () => {
         entryFee: 0,
         requirements: '',
         contactInfo: '',
-        isPublic: true
+        accessType: 'open'
     });
 
     const eventTypes = [
@@ -83,28 +86,34 @@ const Events = () => {
         fetchClubs();
         fetchUniversities();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, search, type, clubFilter, universityFilter, upcomingOnly]);
+    }, [page, search, type, clubFilter, universityFilter, statusFilter, accessTypeFilter]);
+
+    // Reset to first page when filters/search change
+    useEffect(() => {
+        setPage(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search, type, clubFilter, universityFilter, statusFilter, accessTypeFilter]);
 
     const fetchEvents = async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams({
                 page: page.toString(),
-                limit: '9',
-                upcoming: upcomingOnly.toString()
+                limit: '9'
             });
 
             if (search) params.append('search', search);
             if (type && type !== 'All') params.append('type', type);
             if (clubFilter && clubFilter !== 'All') params.append('club', clubFilter);
             if (universityFilter && universityFilter !== 'All') params.append('university', universityFilter);
+            if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
+            if (accessTypeFilter && accessTypeFilter !== 'all') params.append('accessType', accessTypeFilter);
 
-            // Don't filter by university - let server handle public/private logic
-
-            const response = await axios.get(`/api/events?${params}`);
+            const response = await axios.get(`${API_BASE_URL}/events?${params}`);
 
             setEvents(response.data.events || []);
             setTotalPages(response.data.totalPages || 1);
+            setTotalCount(response.data.total || (response.data.events ? response.data.events.length : 0));
         } catch (error) {
             console.error('Error fetching events:', error);
             setEvents([]);
@@ -115,7 +124,7 @@ const Events = () => {
 
     const fetchClubs = async () => {
         try {
-            const response = await axios.get('/api/clubs');
+            const response = await axios.get(`${API_BASE_URL}/clubs`);
             setClubs(response.data.clubs || []);
         } catch (error) {
             console.error('Error fetching clubs:', error);
@@ -125,7 +134,7 @@ const Events = () => {
 
     const fetchUniversities = async () => {
         try {
-            const response = await axios.get('/api/universities');
+            const response = await axios.get(`${API_BASE_URL}/universities`);
             setUniversities(response.data.universities || []);
         } catch (error) {
             console.error('Error fetching universities:', error);
@@ -133,9 +142,16 @@ const Events = () => {
         }
     };
 
-    const handleRegisterEvent = async (eventId) => {
+    const handleRegisterEvent = async (event) => {
+        // Check access control for university-exclusive events
+        if (event.accessType === 'university-exclusive' && 
+            event.club?.university?._id !== user?.university?._id) {
+            alert('This event is exclusive to students from ' + (event.club?.university?.name || 'the organizing university'));
+            return;
+        }
+
         try {
-            await axios.post(`/api/events/${eventId}/register`);
+            await axios.post(`${API_BASE_URL}/events/${event._id}/register`);
             fetchEvents(); // Refresh data
         } catch (error) {
             console.error('Error registering for event:', error);
@@ -153,7 +169,7 @@ const Events = () => {
                 capacity: newEvent.capacity ? parseInt(newEvent.capacity) : undefined
             };
 
-            await axios.post('/api/events', eventData);
+            await axios.post(`${API_BASE_URL}/events`, eventData);
             setCreateDialogOpen(false);
             resetNewEvent();
             fetchEvents(); // Refresh data
@@ -181,7 +197,7 @@ const Events = () => {
             entryFee: 0,
             requirements: '',
             contactInfo: '',
-            isPublic: true
+            accessType: 'open'
         });
     };
 
@@ -198,6 +214,27 @@ const Events = () => {
 
     const isUserRegistered = (event) => {
         return event.attendees?.some(attendee => attendee._id === user?._id);
+    };
+
+    // Derive status from dates for accurate labeling
+    const getEventStatus = (event) => {
+        const now = new Date();
+        const start = event?.startDate ? new Date(event.startDate) : null;
+        const end = event?.endDate ? new Date(event.endDate) : null;
+        if (end && end < now) return 'closed';
+        if (start && start <= now && (!end || end >= now)) return 'ongoing';
+        return 'upcoming';
+    };
+
+    // Determine if registration should be disabled
+    const isRegistrationClosedForEvent = (event) => {
+        const now = new Date();
+        const capacityFull = event.maxAttendees && event.attendees?.length >= event.maxAttendees;
+        const uniExclusiveBlocked = event.accessType === 'university-exclusive' && event.club?.university?._id !== user?.university?._id;
+        const deadlinePassed = event.registrationDeadline && now > new Date(event.registrationDeadline);
+        const eventEnded = event.endDate && now > new Date(event.endDate);
+        const startedNoDeadline = !event.registrationDeadline && event.startDate && now >= new Date(event.startDate);
+        return capacityFull || uniExclusiveBlocked || deadlinePassed || eventEnded || startedNoDeadline;
     };
 
     const handleEventClick = (eventId) => {
@@ -285,20 +322,38 @@ const Events = () => {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={upcomingOnly}
-                                        onChange={(e) => setUpcomingOnly(e.target.checked)}
-                                    />
-                                }
-                                label="Upcoming events only"
-                            />
+                        <Grid item xs={12} sm={6} md={2}>
+                            <FormControl fullWidth>
+                                <InputLabel>Status</InputLabel>
+                                <Select
+                                    value={statusFilter}
+                                    label="Status"
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <MenuItem value="all">All Status</MenuItem>
+                                    <MenuItem value="upcoming">Upcoming</MenuItem>
+                                    <MenuItem value="ongoing">Ongoing</MenuItem>
+                                    <MenuItem value="closed">Closed</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2}>
+                            <FormControl fullWidth>
+                                <InputLabel>Access Type</InputLabel>
+                                <Select
+                                    value={accessTypeFilter}
+                                    label="Access Type"
+                                    onChange={(e) => setAccessTypeFilter(e.target.value)}
+                                >
+                                    <MenuItem value="all">All Events</MenuItem>
+                                    <MenuItem value="open">Open Events</MenuItem>
+                                    <MenuItem value="university-exclusive">University Only</MenuItem>
+                                </Select>
+                            </FormControl>
                         </Grid>
                         <Grid item xs={12} sm={12} md={2}>
                             <Typography variant="body2" color="text.secondary">
-                                Found {events.length} events
+                                Showing {events.length} of {totalCount} events
                             </Typography>
                         </Grid>
                     </Grid>
@@ -346,7 +401,7 @@ const Events = () => {
                                                     height: 90
                                                 }}
                                             >
-                                                <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+                                                <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                                     <Chip
                                                         label={event.eventType || event.type || 'Event'}
                                                         size="small"
@@ -357,6 +412,30 @@ const Events = () => {
                                                             height: 20
                                                         }}
                                                     />
+                                                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                        <Chip
+                                                            label={getEventStatus(event)}
+                                                            size="small"
+                                                            sx={{
+                                                                bgcolor: getEventStatus(event) === 'ongoing' ? '#4caf50' : 
+                                                                        getEventStatus(event) === 'closed' ? '#f44336' : '#2196f3',
+                                                                color: 'white',
+                                                                fontSize: '0.6rem',
+                                                                height: 18,
+                                                                textTransform: 'capitalize'
+                                                            }}
+                                                        />
+                                                        <Chip
+                                                            label={event.accessType === 'university-exclusive' ? 'Uni Only' : 'Open'}
+                                                            size="small"
+                                                            sx={{
+                                                                bgcolor: event.accessType === 'university-exclusive' ? '#ff9800' : '#9c27b0',
+                                                                color: 'white',
+                                                                fontSize: '0.6rem',
+                                                                height: 18
+                                                            }}
+                                                        />
+                                                    </Box>
                                                 </Box>
 
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -467,11 +546,11 @@ const Events = () => {
                                                             size="large"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleRegisterEvent(event._id);
+                                                                handleRegisterEvent(event);
                                                             }}
-                                                            disabled={event.maxAttendees && event.attendees?.length >= event.maxAttendees}
+                                                            disabled={isRegistrationClosedForEvent(event)}
                                                             sx={{
-                                                                background: event.maxAttendees && event.attendees?.length >= event.maxAttendees
+                                                                background: isRegistrationClosedForEvent(event)
                                                                     ? 'linear-gradient(135deg, #9e9e9e 0%, #757575 100%)'
                                                                     : 'linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%)',
                                                                 borderRadius: 2,
@@ -482,16 +561,26 @@ const Events = () => {
                                                                 transition: 'all 0.3s ease',
                                                                 boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
                                                                 '&:hover': {
-                                                                    background: event.maxAttendees && event.attendees?.length >= event.maxAttendees
+                                                                    background: isRegistrationClosedForEvent(event)
                                                                         ? 'linear-gradient(135deg, #9e9e9e 0%, #757575 100%)'
                                                                         : 'linear-gradient(135deg, #ff5252 0%, #ff8f00 100%)',
                                                                     boxShadow: '0 6px 20px rgba(255, 107, 107, 0.4)'
                                                                 }
                                                             }}
                                                         >
-                                                            {event.maxAttendees && event.attendees?.length >= event.maxAttendees
-                                                                ? 'Event Full'
-                                                                : 'Register Now'}
+                                                            {(() => {
+                                                                const now = new Date();
+                                                                const capacityFull = event.maxAttendees && event.attendees?.length >= event.maxAttendees;
+                                                                const uniExclusiveBlocked = event.accessType === 'university-exclusive' && event.club?.university?._id !== user?.university?._id;
+                                                                const deadlinePassed = event.registrationDeadline && now > new Date(event.registrationDeadline);
+                                                                const eventEnded = event.endDate && now > new Date(event.endDate);
+                                                                const startedNoDeadline = !event.registrationDeadline && event.startDate && now >= new Date(event.startDate);
+                                                                if (capacityFull) return 'Event Full';
+                                                                if (uniExclusiveBlocked) return 'University Exclusive';
+                                                                if (eventEnded) return 'Event Ended';
+                                                                if (deadlinePassed || startedNoDeadline) return 'Registration Closed';
+                                                                return 'Register Now';
+                                                            })()}
                                                         </Button>
                                                     ) : (
                                                         <Button
@@ -505,12 +594,12 @@ const Events = () => {
                                                                 fontWeight: 600,
                                                                 fontSize: '0.95rem',
                                                                 textTransform: 'none',
-                                                                borderColor: '#4caf50',
-                                                                color: '#4caf50',
-                                                                bgcolor: 'rgba(76, 175, 80, 0.05)',
+                                                                borderColor: '#2196f3',
+                                                                color: '#2196f3',
+                                                                bgcolor: 'rgba(33, 150, 243, 0.05)',
                                                                 '&.Mui-disabled': {
-                                                                    borderColor: '#4caf50',
-                                                                    color: '#4caf50'
+                                                                    borderColor: '#2196f3',
+                                                                    color: '#2196f3'
                                                                 }
                                                             }}
                                                         >
@@ -538,7 +627,7 @@ const Events = () => {
                                                             }
                                                         }}
                                                     >
-                                                        Open Event
+                                                        No Registration Required
                                                     </Button>
                                                 )}
                                             </CardActions>
@@ -690,16 +779,18 @@ const Events = () => {
                                         label="Registration Required"
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={newEvent.isPublic !== false}
-                                                onChange={(e) => setNewEvent({ ...newEvent, isPublic: e.target.checked })}
-                                            />
-                                        }
-                                        label="Public Event (allow students from all universities)"
-                                    />
+                                <Grid item xs={12} sm={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Access Type</InputLabel>
+                                        <Select
+                                            value={newEvent.accessType}
+                                            label="Access Type"
+                                            onChange={(e) => setNewEvent({ ...newEvent, accessType: e.target.value })}
+                                        >
+                                            <MenuItem value="open">Open Event (All Universities)</MenuItem>
+                                            <MenuItem value="university-exclusive">University Exclusive</MenuItem>
+                                        </Select>
+                                    </FormControl>
                                 </Grid>
                                 {newEvent.registrationRequired && (
                                     <Grid item xs={12}>

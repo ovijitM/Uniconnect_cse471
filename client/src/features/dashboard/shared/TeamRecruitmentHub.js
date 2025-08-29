@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../../../config/api';
 import {
     Box,
     Grid,
@@ -95,10 +96,10 @@ const TeamRecruitmentHub = () => {
             const headers = { Authorization: `Bearer ${token}` };
 
             const [postsRes, applicationsRes, myPostsRes, eventsRes] = await Promise.all([
-                axios.get(`/api/team-recruitment?university=${universityId}`),
-                axios.get('/api/team-recruitment/user/applications', { headers }),
-                axios.get('/api/team-recruitment/user/posts', { headers }),
-                axios.get(`/api/events?university=${universityId}&upcoming=true`)
+                axios.get(`${API_BASE_URL}/team-recruitment?university=${universityId}`),
+                axios.get(`${API_BASE_URL}/team-recruitment/user/applications`, { headers }),
+                axios.get(`${API_BASE_URL}/team-recruitment/user/posts`, { headers }),
+                axios.get(`${API_BASE_URL}/events?university=${universityId}&upcoming=true`)
             ]);
 
             setRecruitmentPosts(postsRes.data.recruitments || []);
@@ -117,7 +118,7 @@ const TeamRecruitmentHub = () => {
 
     const handleApply = async () => {
         try {
-            await axios.post(`/api/team-recruitment/${applyDialog.post._id}/apply`,
+            await axios.post(`${API_BASE_URL}/team-recruitment/${applyDialog.post._id}/apply`,
                 applicationForm,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -133,7 +134,7 @@ const TeamRecruitmentHub = () => {
 
     const handleCreatePost = async () => {
         try {
-            await axios.post(`/api/team-recruitment/events/${createForm.eventId}`,
+            await axios.post(`${API_BASE_URL}/team-recruitment/events/${createForm.eventId}`,
                 createForm,
                 { headers: { Authorization: `Bearer ${token}` } }
             );

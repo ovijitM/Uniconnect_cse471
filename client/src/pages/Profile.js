@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import {
   Container,
   Paper,
@@ -46,7 +47,7 @@ const Profile = () => {
 
   const fetchUniversities = async () => {
     try {
-      const response = await axios.get('/api/universities');
+      const response = await axios.get(`${API_BASE_URL}/universities`);
       setUniversities(response.data.universities || []);
     } catch (error) {
       console.error('Error fetching universities:', error);

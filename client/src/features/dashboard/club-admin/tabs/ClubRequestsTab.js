@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box,
     Typography,
@@ -19,19 +19,14 @@ import {
     Select,
     MenuItem,
     CircularProgress,
-    LinearProgress,
     Divider,
     List,
     ListItem,
-    ListItemText,
-    ListItemSecondaryAction,
-    IconButton
+    ListItemText
 } from '@mui/material';
 import {
     Add as AddIcon,
     Visibility as ViewIcon,
-    Edit as EditIcon,
-    Delete as DeleteIcon,
     AccessTime as AccessTimeIcon,
     CheckCircle as CheckCircleIcon,
     Cancel as CancelIcon,
@@ -85,11 +80,7 @@ const ClubRequestsTab = ({ user, token }) => {
         }
     };
 
-    useEffect(() => {
-        fetchClubRequests();
-    }, []);
-
-    const fetchClubRequests = async () => {
+    const fetchClubRequests = useCallback(async () => {
         try {
             setLoading(true);
             const response = await fetch('/api/club-requests', {
@@ -107,7 +98,11 @@ const ClubRequestsTab = ({ user, token }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token]);
+
+    useEffect(() => {
+        fetchClubRequests();
+    }, [fetchClubRequests]);
 
     const validateForm = () => {
         const errors = {};

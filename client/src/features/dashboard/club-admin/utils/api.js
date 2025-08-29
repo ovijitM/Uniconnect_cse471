@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../../../../config/api';
 
 // API endpoints
-const API_BASE_URL = 'http://localhost:5001/api';
 
 // Club API functions
 export const clubAPI = {

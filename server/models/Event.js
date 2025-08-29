@@ -78,7 +78,8 @@ const eventSchema = new mongoose.Schema({
     attendees: [{
         user: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
+            ref: 'User',
+            required: true
         },
         registeredAt: {
             type: Date,
@@ -87,6 +88,46 @@ const eventSchema = new mongoose.Schema({
         attended: {
             type: Boolean,
             default: false
+        },
+        // Registration form data
+        registrationData: {
+            name: {
+                type: String,
+                required: false
+            },
+            email: {
+                type: String,
+                required: false
+            },
+            phone: {
+                type: String,
+                required: false
+            },
+            university: {
+                type: String,
+                required: false
+            },
+            studentId: {
+                type: String
+            },
+            major: {
+                type: String
+            },
+            year: {
+                type: String
+            },
+            dietaryRestrictions: {
+                type: String
+            },
+            emergencyContact: {
+                name: String,
+                phone: String,
+                relationship: String
+            },
+            additionalInfo: {
+                type: String,
+                maxlength: 500
+            }
         }
     }],
     organizers: [{
@@ -112,9 +153,16 @@ const eventSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Draft', 'Published', 'Cancelled', 'Completed'],
-        default: 'Draft'
+        enum: ['upcoming', 'ongoing', 'closed'],
+        default: 'upcoming'
     },
+    accessType: {
+        type: String,
+        enum: ['university-exclusive', 'open'],
+        default: 'open',
+        required: [true, 'Access type is required']
+    },
+    // Legacy field for backward compatibility
     isPublic: {
         type: Boolean,
         default: true
@@ -137,6 +185,68 @@ eventSchema.virtual('isUpcoming').get(function () {
 eventSchema.virtual('isOngoing').get(function () {
     const now = new Date();
     return this.startDate <= now && this.endDate >= now;
+});
+
+// Virtual for checking if event is closed
+eventSchema.virtual('isClosed').get(function () {
+    return this.endDate < new Date();
+});
+
+// Method to automatically update status based on dates
+eventSchema.methods.updateStatusBasedOnDates = function() {
+    const now = new Date();
+    if (this.endDate < now) {
+        this.status = 'closed';
+    } else if (this.startDate <= now && this.endDate >= now) {
+        this.status = 'ongoing';
+    } else {
+        this.status = 'upcoming';
+    }
+    return this.status;
+};
+
+// Pre-save middleware to automatically update status
+eventSchema.pre('save', function(next) {
+    this.updateStatusBasedOnDates();
+    next();
+});
+
+// Pre-update middleware to automatically update status
+eventSchema.pre(['updateOne', 'findOneAndUpdate'], function(next) {
+    const update = this.getUpdate();
+    if (update.startDate || update.update || update.$set) {
+        const now = new Date();
+        const startDate = update.startDate || update.$set?.startDate;
+        const endDate = update.endDate || update.$set?.endDate;
+        
+        if (startDate && endDate) {
+            let status;
+            if (endDate < now) {
+                status = 'closed';
+            } else if (startDate <= now && endDate >= now) {
+                status = 'ongoing';
+            } else {
+                status = 'upcoming';
+            }
+            
+            if (update.$set) {
+                update.$set.status = status;
+            } else {
+                update.status = status;
+            }
+        }
+    }
+    next();
+});
+
+// Ensure status is valid before validation runs
+eventSchema.pre('validate', function(next) {
+    // If current status is not one of allowed values, coerce based on dates
+    const allowed = ['upcoming', 'ongoing', 'closed'];
+    if (!allowed.includes(this.status)) {
+        this.updateStatusBasedOnDates();
+    }
+    next();
 });
 
 module.exports = mongoose.model('Event', eventSchema);

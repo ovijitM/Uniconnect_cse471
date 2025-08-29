@@ -46,8 +46,6 @@ import AnalyticsIcon from '@mui/icons-material/Analytics';
 
 const AnalyticsTab = () => {
     // State management
-    const [dateRange, setDateRange] = useState('last30days');
-    const [viewType, setViewType] = useState('overview');
     const [timeRange, setTimeRange] = useState('month');
 
     // Sample data - replace with real data from props or API

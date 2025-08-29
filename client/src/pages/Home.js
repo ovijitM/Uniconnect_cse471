@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { Container, Typography, Button, Box, Grid, Card, CardContent, Avatar, Chip } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
@@ -22,8 +23,8 @@ const Home = () => {
   const fetchFeaturedContent = async () => {
     try {
       const [clubsRes, eventsRes] = await Promise.all([
-        axios.get('/api/clubs?limit=6'),
-        axios.get('/api/events?limit=6')
+        axios.get(`${API_BASE_URL}/clubs?limit=6`),
+        axios.get(`${API_BASE_URL}/events?limit=6`)
       ]);
 
       setFeaturedClubs(clubsRes.data.clubs || []);

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../../config/api';
 import {
     Container,
     Typography,
@@ -28,6 +30,7 @@ import EnhancedProfile from '../shared/EnhancedProfile';
 // Student Dashboard Component for Regular Students
 const StudentDashboard = () => {
     const { user, refreshUser, token } = useAuth();
+    const navigate = useNavigate();
     const [clubs, setClubs] = useState([]);
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,8 +42,8 @@ const StudentDashboard = () => {
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
             const [clubsRes, eventsRes] = await Promise.all([
-                axios.get(`/api/clubs${universityId ? `?university=${universityId}` : ''}`, { headers }),
-                axios.get(`/api/events${universityId ? `?university=${universityId}` : ''}`, { headers })
+                axios.get(`${API_BASE_URL}/clubs${universityId ? `?university=${universityId}` : ''}`, { headers }),
+            axios.get(`${API_BASE_URL}/events${universityId ? `?university=${universityId}` : ''}`, { headers })
             ]);
 
             setClubs(clubsRes.data.clubs || []);
@@ -63,65 +66,104 @@ const StudentDashboard = () => {
     // Debug user data - remove in production
     useEffect(() => {
         if (user) {
+            console.log('=== FRONTEND DEBUG - USER DATA ===');
             console.log('Current user data:', user);
             console.log('User club memberships:', user?.clubMemberships);
             console.log('User events attended:', user?.eventsAttended);
             console.log('User data fully loaded:', user.clubMemberships !== undefined && user.eventsAttended !== undefined);
+            console.log('Events attended count:', user?.eventsAttended?.length || 0);
+            console.log('Club memberships count:', user?.clubMemberships?.length || 0);
         }
     }, [user]);
 
     const handleJoinClub = async (clubId) => {
         try {
-            const response = await axios.post(`/api/clubs/${clubId}/join`, {}, {
+            setLoading(true);
+            const response = await axios.post(`${API_BASE_URL}/clubs/${clubId}/join`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             if (response.data.message) {
                 alert(response.data.message);
-                await refreshUser(); // Refresh user data first
-                await fetchClubsAndEvents(); // Then refresh clubs and events
+                // Refresh user data first to get updated clubMemberships
+                await refreshUser();
+                // Then refresh clubs to get updated member counts
+                await fetchClubsAndEvents();
             }
         } catch (error) {
             console.error('Error joining club:', error);
             alert(error.response?.data?.message || 'Failed to join club');
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleRegisterEvent = async (eventId) => {
         try {
-            const response = await axios.post(`/api/events/${eventId}/register`, {}, {
+            setLoading(true);
+            console.log('=== REGISTERING FOR EVENT ===');
+            console.log('Event ID:', eventId);
+            console.log('User events before registration:', user?.eventsAttended?.length || 0);
+            
+            const response = await axios.post(`${API_BASE_URL}/events/${eventId}/register`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             if (response.data.message) {
                 alert(response.data.message);
-                await refreshUser(); // Refresh user data first
-                await fetchClubsAndEvents(); // Then refresh clubs and events
+                console.log('✅ Registration successful, refreshing data...');
+                
+                // Force a complete data refresh
+                console.log('🔄 Starting data refresh sequence...');
+                
+                // First refresh user data
+                const userRefreshResult = await refreshUser();
+                console.log('User refresh result:', userRefreshResult);
+                
+                // Then refresh events and clubs
+                await fetchClubsAndEvents();
+                console.log('✅ Events and clubs data refreshed');
+                
+                // Force a small delay to ensure state updates
+                setTimeout(() => {
+                    console.log('🎯 Post-registration data check:');
+                    console.log('User events attended:', user?.eventsAttended?.length || 0);
+                    console.log('Calculated user events:', userEvents.length);
+                }, 500);
             }
         } catch (error) {
-            console.error('Error registering for event:', error);
+            console.error('❌ Error registering for event:', error);
             alert(error.response?.data?.message || 'Failed to register for event');
-        }
-    };
-
-    const handleForceRefresh = async () => {
-        setLoading(true);
-        try {
-            await refreshUser();
-            await fetchClubsAndEvents();
-
-            // Also test our debug endpoint
-            const debugResponse = await axios.get('/api/debug/user', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            console.log('=== SERVER DEBUG DATA ===');
-            console.log('Debug response:', debugResponse.data);
-        } catch (error) {
-            console.error('Debug error:', error);
         } finally {
             setLoading(false);
         }
     };
+
+    const handleForceRefresh = useCallback(async () => {
+        setLoading(true);
+        console.log('🔄 FORCE REFRESH TRIGGERED');
+        try {
+            console.log('Refreshing user data...');
+            const userResult = await refreshUser();
+            console.log('User refresh result:', userResult);
+            
+            console.log('Refreshing clubs and events...');
+            await fetchClubsAndEvents();
+            console.log('✅ Force refresh completed');
+            
+            // Log current state after refresh
+            setTimeout(() => {
+                console.log('📊 Current state after force refresh:');
+                console.log('User events attended:', user?.eventsAttended?.length || 0);
+                console.log('Available events:', events?.length || 0);
+                console.log('Available clubs:', clubs?.length || 0);
+            }, 1000);
+        } catch (error) {
+            console.error('❌ Error during force refresh:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [refreshUser, fetchClubsAndEvents, user, events, clubs]);
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -161,36 +203,82 @@ const StudentDashboard = () => {
 
         console.log('Final userClubs result:', result.map(c => c.name));
         return result;
-    }, [user?.clubMemberships, clubs]);
+    }, [user, clubs]);
 
-    // Get user's registered events - SIMPLIFIED FOR DEBUGGING
+    // Get user's registered events - ENHANCED DEBUGGING
     const userEvents = useMemo(() => {
-        if (!user?.eventsAttended || !events.length) {
-            console.log('No user event attendance or events available');
+        console.log('=== CALCULATING USER EVENTS ===');
+        console.log('User object:', user);
+        console.log('User eventsAttended:', user?.eventsAttended);
+        console.log('Events array length:', events?.length || 0);
+        
+        if (!user?.eventsAttended) {
+            console.log('❌ No user.eventsAttended found');
+            return [];
+        }
+        
+        if (!events || events.length === 0) {
+            console.log('❌ No events available');
             return [];
         }
 
         const result = [];
-        console.log('=== EVENT REGISTRATION DEBUG ===');
-        console.log('User events attended:', user.eventsAttended);
-        console.log('Available events:', events.map(e => ({ id: e._id, title: e.title })));
-
-        user.eventsAttended.forEach(attendance => {
-            const attendanceEventId = attendance.event?._id || attendance.event;
-            console.log('Looking for event with ID:', attendanceEventId);
-
-            const foundEvent = events.find(event => event._id === attendanceEventId);
-            if (foundEvent) {
-                console.log('Found matching event:', foundEvent.title);
-                result.push(foundEvent);
+        console.log('📋 Processing', user.eventsAttended.length, 'attended events');
+        
+        user.eventsAttended.forEach((attendance, index) => {
+            console.log(`\n--- Processing attendance ${index + 1} ---`);
+            console.log('Attendance object:', attendance);
+            
+            // Handle different possible data structures
+            let eventId = null;
+            if (typeof attendance === 'string') {
+                eventId = attendance;
+            } else if (attendance?.event) {
+                if (typeof attendance.event === 'string') {
+                    eventId = attendance.event;
+                } else if (attendance.event._id) {
+                    eventId = attendance.event._id;
+                }
+            } else if (attendance._id) {
+                eventId = attendance._id;
+            }
+            
+            console.log('Extracted event ID:', eventId);
+            
+            if (eventId) {
+                const foundEvent = events.find(event => {
+                    const match = event._id === eventId || event._id?.toString() === eventId?.toString();
+                    if (match) {
+                        console.log('✅ Found matching event:', event.title);
+                    }
+                    return match;
+                });
+                
+                if (foundEvent) {
+                    result.push(foundEvent);
+                } else {
+                    console.log('❌ No matching event found for ID:', eventId);
+                    console.log('Available event IDs:', events.map(e => e._id));
+                }
             } else {
-                console.log('No matching event found for ID:', attendanceEventId);
+                console.log('❌ Could not extract event ID from attendance:', attendance);
             }
         });
 
-        console.log('Final userEvents result:', result.map(e => e.title));
+        console.log('\n🎯 FINAL RESULT:');
+        console.log('User events count:', result.length);
+        console.log('User events titles:', result.map(e => e.title));
         return result;
-    }, [user?.eventsAttended, events]);
+    }, [user, events]);
+
+    // Debug events and clubs data
+    useEffect(() => {
+        console.log('=== FRONTEND DEBUG - EVENTS & CLUBS ===');
+        console.log('Available events:', events.length);
+        console.log('Available clubs:', clubs.length);
+        console.log('User events (calculated):', userEvents.length);
+        console.log('User clubs (calculated):', userClubs.length);
+    }, [events, clubs, userEvents, userClubs]);
 
     const renderClubs = (clubList) => (
         <Grid container spacing={3}>
@@ -212,12 +300,14 @@ const StudentDashboard = () => {
                         <Card
                             sx={{
                                 height: '100%',
+                                cursor: 'pointer',
                                 transition: 'transform 0.2s, box-shadow 0.2s',
                                 '&:hover': {
                                     transform: 'translateY(-4px)',
                                     boxShadow: 3
                                 }
                             }}
+                            onClick={() => navigate(`/clubs/${club._id}`)}
                         >
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -255,7 +345,10 @@ const StudentDashboard = () => {
                                         size="small"
                                         variant="contained"
                                         startIcon={<PersonAddIcon />}
-                                        onClick={() => handleJoinClub(club._id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleJoinClub(club._id);
+                                        }}
                                         fullWidth
                                     >
                                         Join Club
@@ -291,12 +384,14 @@ const StudentDashboard = () => {
                         <Card
                             sx={{
                                 height: '100%',
+                                cursor: 'pointer',
                                 transition: 'transform 0.2s, box-shadow 0.2s',
                                 '&:hover': {
                                     transform: 'translateY(-4px)',
                                     boxShadow: 3
                                 }
                             }}
+                            onClick={() => navigate(`/events/${event._id}`)}
                         >
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -356,7 +451,10 @@ const StudentDashboard = () => {
                                         size="small"
                                         variant="contained"
                                         color="secondary"
-                                        onClick={() => handleRegisterEvent(event._id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRegisterEvent(event._id);
+                                        }}
                                         fullWidth
                                     >
                                         Register
@@ -412,6 +510,19 @@ const StudentDashboard = () => {
                     </Button>
                 </Box>
             </Paper>
+
+            {/* Debug Controls */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                <Box sx={{ p: 1, borderRadius: 1, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
+                    Registered Count: {userEvents.length}
+                </Box>
+                <Button variant="contained" size="small" onClick={handleForceRefresh} disabled={loading}>
+                    Update List
+                </Button>
+                <Box sx={{ p: 1, borderRadius: 1, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
+                    All Events Count: {events.length}
+                </Box>
+            </Box>
 
             {/* Quick Stats */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -483,6 +594,7 @@ const StudentDashboard = () => {
                     <Tab icon={<GroupsIcon />} label="My Clubs" />
                     <Tab icon={<GroupsIcon />} label="All Clubs" />
                     <Tab icon={<EventIcon />} label="Events" />
+                    <Tab icon={<EventIcon />} label="Registered Events" />
                     <Tab icon={<GroupsIcon />} label="Team Hub" />
                     <Tab icon={<PersonAddIcon />} label="Profile" />
                 </Tabs>
@@ -518,13 +630,35 @@ const StudentDashboard = () => {
                 </Box>
             )}
 
-            {/* Team Recruitment Hub Tab */}
+            {/* Registered Events Tab */}
             {tabValue === 3 && (
+                <Box>
+                    <Typography variant="h5" gutterBottom>
+                        📅 My Registered Events ({userEvents.length})
+                    </Typography>
+                    {userEvents.length === 0 ? (
+                        <Box textAlign="center" py={4}>
+                            <EventIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                            <Typography variant="h6" color="text.secondary">
+                                No registered events yet
+                            </Typography>
+                            <Typography color="text.secondary">
+                                Register for events to see them here
+                            </Typography>
+                        </Box>
+                    ) : (
+                        renderEvents(userEvents)
+                    )}
+                </Box>
+            )}
+
+            {/* Team Recruitment Hub Tab */}
+            {tabValue === 4 && (
                 <TeamRecruitmentHub />
             )}
 
             {/* My Profile Tab */}
-            {tabValue === 4 && (
+            {tabValue === 5 && (
                 <EnhancedProfile />
             )}
         </Container>

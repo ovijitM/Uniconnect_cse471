@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -84,7 +85,7 @@ const ClubProfile = () => {
 
     const fetchClubData = useCallback(async () => {
         try {
-            const response = await axios.get(`/api/clubs/${id}`);
+            const response = await axios.get(`${API_BASE_URL}/clubs/${id}`);
             setClub(response.data);
         } catch (error) {
             console.error('Error fetching club data:', error);
@@ -96,7 +97,7 @@ const ClubProfile = () => {
 
     const fetchClubEvents = useCallback(async () => {
         try {
-            const response = await axios.get(`/api/events/club/${id}`);
+            const response = await axios.get(`${API_BASE_URL}/events/club/${id}`);
             setClubEvents(response.data.events || []);
         } catch (error) {
             console.error('Error fetching club events:', error);
@@ -120,9 +121,9 @@ const ClubProfile = () => {
         setJoinLoading(true);
         try {
             if (isUserMember()) {
-                await axios.post(`/api/clubs/${id}/leave`);
+                await axios.post(`${API_BASE_URL}/clubs/${id}/leave`);
             } else {
-                await axios.post(`/api/clubs/${id}/join`);
+                await axios.post(`${API_BASE_URL}/clubs/${id}/join`);
             }
             await fetchClubData(); // Refresh club data
         } catch (error) {
@@ -141,7 +142,7 @@ const ClubProfile = () => {
     const fetchAnnouncements = useCallback(async () => {
         setAnnouncementsLoading(true);
         try {
-            const response = await axios.get(`/api/announcements/club/${id}`);
+            const response = await axios.get(`${API_BASE_URL}/announcements/club/${id}`);
             setAnnouncements(response.data.announcements || []);
         } catch (error) {
             console.error('Error fetching announcements:', error);
@@ -188,7 +189,7 @@ const ClubProfile = () => {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`/api/announcements/club/${id}`, newAnnouncementData, {
+            await axios.post(`${API_BASE_URL}/announcements/club/${id}`, newAnnouncementData, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -210,7 +211,7 @@ const ClubProfile = () => {
     const handleLikeAnnouncement = async (announcementId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post(`/api/announcements/${announcementId}/like`, {}, {
+            const response = await axios.post(`${API_BASE_URL}/announcements/${announcementId}/like`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -235,7 +236,7 @@ const ClubProfile = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post(`/api/announcements/${announcementId}/comment`,
+            const response = await axios.post(`${API_BASE_URL}/announcements/${announcementId}/comment`,
                 { content: content.trim() },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

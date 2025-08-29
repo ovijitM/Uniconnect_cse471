@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../../../config/api';
 import {
     Container,
     Typography,
@@ -131,7 +132,7 @@ const AdminDashboard = () => {
 
     const fetchClubRequests = async () => {
         try {
-            const response = await axios.get('/api/club-requests/all');
+            const response = await axios.get(`${API_BASE_URL}/club-requests/all`);
             const requests = response.data.requests || [];
             setClubRequests(requests);
 
@@ -162,7 +163,7 @@ const AdminDashboard = () => {
 
     const fetchAllClubs = async () => {
         try {
-            const response = await axios.get('/api/clubs');
+            const response = await axios.get(`${API_BASE_URL}/clubs`);
             const clubs = response.data.clubs || [];
             setAllClubs(clubs);
             setStats(prev => ({ ...prev, totalClubs: clubs.length }));
@@ -173,7 +174,7 @@ const AdminDashboard = () => {
 
     const fetchAllEvents = async () => {
         try {
-            const response = await axios.get('/api/events');
+            const response = await axios.get(`${API_BASE_URL}/events`);
             const events = response.data.events || [];
             setAllEvents(events);
 
@@ -194,7 +195,7 @@ const AdminDashboard = () => {
 
     const fetchAllUsers = async () => {
         try {
-            const response = await axios.get('/api/users');
+            const response = await axios.get(`${API_BASE_URL}/users`);
             const users = response.data.users || [];
             setAllUsers(users);
 
@@ -227,7 +228,7 @@ const AdminDashboard = () => {
 
     const fetchUniversities = async () => {
         try {
-            const response = await axios.get('/api/universities');
+            const response = await axios.get(`${API_BASE_URL}/universities`);
             const universitiesData = response.data.universities || [];
             setUniversities(universitiesData);
             setStats(prev => ({
@@ -259,7 +260,7 @@ const AdminDashboard = () => {
 
     const handleSubmitReview = async () => {
         try {
-            await axios.put(`/api/club-requests/${selectedRequest._id}/review`, {
+            await axios.put(`${API_BASE_URL}/club-requests/${selectedRequest._id}/review`, {
                 status: reviewAction,
                 adminNotes: adminNotes
             });
@@ -295,7 +296,7 @@ const AdminDashboard = () => {
 
     const handleSubmitRoleChange = async () => {
         try {
-            await axios.put(`/api/users/${selectedUser._id}/role`, {
+            await axios.put(`${API_BASE_URL}/users/${selectedUser._id}/role`, {
                 role: newUserRole
             });
             setRoleChangeDialogOpen(false);
@@ -309,7 +310,7 @@ const AdminDashboard = () => {
 
     const handleToggleUserStatus = async (userId, isActive) => {
         try {
-            await axios.put(`/api/users/${userId}/status`, {
+            await axios.put(`${API_BASE_URL}/users/${userId}/status`, {
                 isActive: !isActive
             });
             fetchAllUsers();
@@ -336,7 +337,7 @@ const AdminDashboard = () => {
     const handleDeleteClub = async (club) => {
         if (window.confirm(`Are you sure you want to delete the club "${club.name}"? This action cannot be undone.`)) {
             try {
-                await axios.delete(`/api/clubs/${club._id}`);
+                await axios.delete(`${API_BASE_URL}/clubs/${club._id}`);
                 fetchAllClubs();
                 alert(`Club "${club.name}" deleted successfully!`);
             } catch (error) {
@@ -376,10 +377,10 @@ const AdminDashboard = () => {
     const handleSubmitUniversity = async () => {
         try {
             if (editingUniversity) {
-                await axios.put(`/api/universities/${editingUniversity._id}`, universityFormData);
+                await axios.put(`${API_BASE_URL}/universities/${editingUniversity._id}`, universityFormData);
                 alert('University updated successfully!');
             } else {
-                await axios.post('/api/universities', universityFormData);
+                await axios.post(`${API_BASE_URL}/universities`, universityFormData);
                 alert('University created successfully!');
             }
             setUniversityDialogOpen(false);
@@ -396,7 +397,7 @@ const AdminDashboard = () => {
         }
 
         try {
-            await axios.delete(`/api/universities/${universityId}`);
+            await axios.delete(`${API_BASE_URL}/universities/${universityId}`);
             fetchUniversities();
             alert('University deleted successfully!');
         } catch (error) {
@@ -420,7 +421,7 @@ const AdminDashboard = () => {
         try {
             await Promise.all(
                 pendingRequests.map(request =>
-                    axios.put(`/api/club-requests/${request._id}/review`, {
+                    axios.put(`${API_BASE_URL}/club-requests/${request._id}/review`, {
                         status: 'approved',
                         adminNotes: 'Bulk approved by administrator'
                     })

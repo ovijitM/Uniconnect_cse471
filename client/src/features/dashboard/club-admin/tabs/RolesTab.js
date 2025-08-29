@@ -14,7 +14,6 @@ import {
     TableHead,
     TableRow,
     TablePagination,
-    Paper,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -28,7 +27,6 @@ import {
     FormGroup,
     FormControlLabel,
     IconButton,
-    Tooltip,
     Menu,
     Divider,
     Tabs,
@@ -38,9 +36,7 @@ import {
     ListItemText,
     ListItemIcon,
     Avatar,
-    InputAdornment,
-    Alert,
-    LinearProgress
+    InputAdornment
 } from '@mui/material';
 import {
     Add,
@@ -52,21 +48,16 @@ import {
     MoreVert,
     CheckCircle,
     Cancel,
-    Group,
-    Settings,
     Visibility,
     Download,
     Shield,
     AdminPanelSettings,
     SupervisorAccount,
-    Person,
-    FilterList
+    Person
 } from '@mui/icons-material';
 
 const RolesTab = () => {
     const [tabValue, setTabValue] = useState(0);
-    const [selectedRole, setSelectedRole] = useState(null);
-    const [selectedUser, setSelectedUser] = useState(null);
     const [menuTarget, setMenuTarget] = useState({ anchorEl: null, data: null });
     const [rolesData, setRolesData] = useState({
         roles: [
@@ -180,8 +171,6 @@ const RolesTab = () => {
 
     // Dialog states
     const [createRoleDialog, setCreateRoleDialog] = useState(false);
-    const [editRoleDialog, setEditRoleDialog] = useState(false);
-    const [assignRoleDialog, setAssignRoleDialog] = useState(false);
     const [permissionsDialog, setPermissionsDialog] = useState(false);
 
     // Form states
@@ -229,31 +218,6 @@ const RolesTab = () => {
             ...prev,
             roles: prev.roles.filter(role => role.id !== roleId)
         }));
-    };
-
-    const handleAssignRole = (userId, roleId) => {
-        const user = rolesData.userRoles.find(ur => ur.userId === userId);
-        const role = rolesData.roles.find(r => r.id === roleId);
-
-        if (user && role) {
-            const assignment = {
-                id: Date.now(),
-                userId: user.userId,
-                userName: user.userName,
-                userEmail: user.userEmail,
-                roleId: role.id,
-                roleName: role.name,
-                assignedBy: 'Current User',
-                assignedDate: new Date().toISOString().split('T')[0],
-                status: 'Active'
-            };
-
-            setRolesData(prev => ({
-                ...prev,
-                userRoles: [...prev.userRoles, assignment]
-            }));
-        }
-        setAssignRoleDialog(false);
     };
 
     const handleMenuClick = (event, data) => {
@@ -436,8 +400,7 @@ const RolesTab = () => {
                                                         <IconButton
                                                             size="small"
                                                             onClick={() => {
-                                                                setSelectedRole(role);
-                                                                setEditRoleDialog(true);
+                                                                // Edit role functionality would go here
                                                             }}
                                                         >
                                                             <Edit fontSize="small" />
@@ -477,7 +440,7 @@ const RolesTab = () => {
                         <Button
                             variant="contained"
                             startIcon={<PersonAdd />}
-                            onClick={() => setAssignRoleDialog(true)}
+                            onClick={() => {/* Assign role functionality would go here */}}
                         >
                             Assign Role
                         </Button>
@@ -543,8 +506,7 @@ const RolesTab = () => {
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => {
-                                                            setSelectedUser(userRole);
-                                                            setEditRoleDialog(true);
+                                                            // Edit user role functionality would go here
                                                         }}
                                                     >
                                                         <Edit fontSize="small" />
@@ -612,8 +574,7 @@ const RolesTab = () => {
                 onClose={handleMenuClose}
             >
                 <MenuItem onClick={() => {
-                    setSelectedRole(menuTarget.data);
-                    setEditRoleDialog(true);
+                    // Edit role functionality would go here
                     handleMenuClose();
                 }}>
                     <Edit fontSize="small" sx={{ mr: 1 }} />

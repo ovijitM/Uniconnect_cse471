@@ -49,14 +49,7 @@ const EventsTab = ({
         });
     };
 
-    const getEventStatus = (eventDate) => {
-        const today = new Date();
-        const eventDateObj = new Date(eventDate);
 
-        if (eventDateObj < today) return { label: 'Past', color: 'default' };
-        if (eventDateObj.toDateString() === today.toDateString()) return { label: 'Today', color: 'warning' };
-        return { label: 'Upcoming', color: 'success' };
-    };
 
     return (
         <Box>
@@ -95,7 +88,15 @@ const EventsTab = ({
                     </Grid>
                 ) : (
                     myEvents.map((event) => {
-                        const status = getEventStatus(event.date);
+                        const getStatusColor = (status) => {
+                            switch(status) {
+                                case 'ongoing': return 'success';
+                                case 'closed': return 'error';
+                                case 'upcoming': return 'primary';
+                                default: return 'default';
+                            }
+                        };
+                        
                         return (
                             <Grid item xs={12} md={6} lg={4} key={event._id}>
                                 <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -111,11 +112,20 @@ const EventsTab = ({
                                                     </Typography>
                                                 )}
                                             </Box>
-                                            <Box display="flex" gap={0.5}>
-                                                <Chip label={status.label} size="small" color={status.color} />
-                                                {event.isPrivate && (
-                                                    <Chip label="Private" size="small" color="secondary" />
-                                                )}
+                                            <Box display="flex" gap={0.5} flexDirection="column">
+                                                <Box display="flex" gap={0.5}>
+                                                    <Chip 
+                                                        label={event.status || 'upcoming'} 
+                                                        size="small" 
+                                                        color={getStatusColor(event.status)} 
+                                                        sx={{ textTransform: 'capitalize' }}
+                                                    />
+                                                    <Chip 
+                                                        label={event.accessType === 'university-exclusive' ? 'Uni Only' : 'Open'} 
+                                                        size="small" 
+                                                        color={event.accessType === 'university-exclusive' ? 'warning' : 'secondary'} 
+                                                    />
+                                                </Box>
                                             </Box>
                                         </Box>
 
