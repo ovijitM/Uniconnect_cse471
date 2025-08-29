@@ -29,10 +29,15 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Allow localhost and any vercel.app domain
-    if (origin.includes('localhost') || origin.endsWith('.vercel.app')) {
+    // Check if origin is in allowedOrigins or is a vercel.app domain
+    const isAllowed = allowedOrigins.includes(origin) || 
+                     origin.includes('localhost') || 
+                     origin.endsWith('.vercel.app');
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
